@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>數學遊戲：位置猜猜猜 v9.2 (終極穩定版)</title>
-    <!-- 引入 Supabase 最新 CDN SDK -->
+    <title>數學遊戲：位置猜猜猜 v8.8 雲端實時版</title>
+    <!-- 引入 Supabase CDN (雲端資料庫 SDK) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=400;700&display=swap');
         :root { 
-            --bg-image: url('my_background.jpg');
+            --bg-image: url('my_background.jpg'); /* 統一背景圖 */
             --cabin-frame-color: #8B4513; 
             --cabin-inner-color: #F5DEB3; 
             --button-color: #5CB85C; 
@@ -18,73 +18,346 @@
             --font-family: 'Noto Sans TC', sans-serif; 
             --container-bg: rgba(232, 221, 203, 0.85); 
         }
-        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
-        body { font-family: var(--font-family); background-image: var(--bg-image); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed; color: var(--cabin-frame-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow: hidden; padding: 10px; }
-        .game-container { position: relative; width: 95vw; height: 92vh; max-width: 1200px; max-height: 800px; background: var(--container-bg); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border-radius: 20px; box-shadow: 0 1rem 3rem rgba(0,0,0,0.25); border: 0.5rem solid var(--cabin-frame-color); display: flex; flex-direction: column; padding: 1.5vmin; overflow: hidden; }
+        
+        * {
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body { 
+            font-family: var(--font-family); 
+            background-image: var(--bg-image); 
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat; 
+            background-attachment: fixed;
+            color: var(--cabin-frame-color); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            overflow: hidden; 
+            padding: 10px;
+        }
+        /* 遊戲主容器 */
+        .game-container { 
+            position: relative; 
+            width: 95vw; 
+            height: 92vh; 
+            max-width: 1200px; 
+            max-height: 800px; 
+            background: var(--container-bg); 
+            backdrop-filter: blur(4px); 
+            -webkit-backdrop-filter: blur(4px);
+            border-radius: 20px; 
+            box-shadow: 0 1rem 3rem rgba(0,0,0,0.25); 
+            border: 0.5rem solid var(--cabin-frame-color); 
+            display: flex; 
+            flex-direction: column; 
+            padding: 1.5vmin; 
+            overflow: hidden;
+        }
         .info-panel { text-align: center; flex-shrink: 0; }
         header { padding-bottom: 0.2rem; }
         h1 { margin: 0; font-size: 3.2vh; }
-        .status-bar { display: flex; justify-content: space-around; align-items: center; font-size: 2.3vh; font-weight: bold; padding: 0.5vh; background-color: rgba(255, 255, 255, 0.5); border-radius: 0.8rem; margin-bottom: 0.8vh; }
-        .difficulty-badge { display: flex; align-items: center; gap: 0.4rem; background: rgba(139, 69, 19, 0.1); padding: 0.1vh 0.8vh; border-radius: 0.5rem; }
-        .instruction-area { font-size: 3.5vh; font-weight: bold; padding: 0.2vh; margin-bottom: 0.5vh; display: flex; justify-content: center; align-items: center; min-height: 5.5vh; }
+        
+        .status-bar { 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center;
+            font-size: 2.3vh; 
+            font-weight: bold; 
+            padding: 0.5vh; 
+            background-color: rgba(255, 255, 255, 0.5); 
+            border-radius: 0.8rem; 
+            margin-bottom: 0.8vh; 
+        }
+        
+        .difficulty-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(139, 69, 19, 0.1);
+            padding: 0.1vh 0.8vh;
+            border-radius: 0.5rem;
+        }
+        
+        /* 預設指令區大字體樣式（適用於直向） */
+        .instruction-area { 
+            font-size: 3.5vh; 
+            font-weight: bold; 
+            padding: 0.2vh; 
+            margin-bottom: 0.5vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 5.5vh;
+        }
         .instruction-area .emoji { font-size: 1.3em; vertical-align: middle; margin: 0 0.5rem; }
-        .content-area { display: flex; flex-grow: 1; gap: 1.5vh; min-height: 0; width: 100%; }
+        
+        /* 核心自適應內容區 */
+        .content-area { 
+            display: flex; 
+            flex-grow: 1; 
+            gap: 1.5vh; 
+            min-height: 0; 
+            width: 100%;
+        }
+        /* ==================================================== */
+        /* ★ 橫向佈局極致優化：強制放大指令字體 + 再縮小櫃子 ★ */
+        /* ==================================================== */
         @media (orientation: landscape) {
-            .game-container { width: 80vw; height: 85vh; padding: 2vh; }
-            .content-area { flex-direction: row; align-items: stretch; }
-            .game-grid { width: 58%; height: 100%; }
-            .draggable-object-area { width: 42%; height: 100%; flex-direction: column; }
+            .game-container {
+                width: 80vw;
+                height: 85vh;
+                padding: 2vh;
+            }
+            .content-area {
+                flex-direction: row;
+                align-items: stretch;
+            }
+            
+            /* 極致縮小小屋櫃子在橫向時的寬度，縮短拖曳物理距離 */
+            .game-grid {
+                width: 58%; /* 再縮小至 58% */
+                height: 100%;
+            }
+            .draggable-object-area {
+                width: 42%; /* 擴大拖曳緩衝區 */
+                height: 100%;
+                flex-direction: column;
+            }
+            
             h1 { font-size: 2.8vh; }
             .status-bar { font-size: 2vh; padding: 0.4vh; }
-            body .instruction-area { font-size: 3.6vh !important; min-height: 5.5vh !important; }
-            body .instruction-area .emoji { font-size: 1.3em !important; }
+            
+            /* ★ 強制覆蓋放大：橫向時「A在B左面」字體放大至與直向一樣大 (3.6vh)，Emoji 放大至 1.3em ★ */
+            body .instruction-area { 
+                font-size: 3.6vh !important; 
+                min-height: 5.5vh !important; 
+            }
+            body .instruction-area .emoji {
+                font-size: 1.3em !important;
+            }
         }
+        /* 預設直向佈局 (iPad 直向) */
         @media (orientation: portrait) {
-            .content-area { flex-direction: column; align-items: stretch; }
-            .game-grid { width: 100%; height: 75%; }
-            .draggable-object-area { width: 100%; height: 25%; flex-direction: row; }
+            .content-area {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .game-grid {
+                width: 100%;
+                height: 75%;
+            }
+            .draggable-object-area {
+                width: 100%;
+                height: 25%;
+                flex-direction: row;
+            }
         }
-        .game-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); gap: 1vh; background-color: var(--cabin-frame-color); border: 0.8vh solid var(--cabin-frame-color); border-radius: 1.5rem; padding: 0.8vh; }
-        .grid-cell { background-color: var(--cabin-inner-color); border-radius: 0.8rem; display: flex; justify-content: center; align-items: center; font-size: 5.5vh; position: relative; }
-        .grid-cell[data-anchor="true"] { box-shadow: inset 0 0 0 0.5vh var(--highlight-color); }
-        .draggable-object-area { display: flex; justify-content: center; align-items: center; padding: 0.5vh; flex-shrink: 0; }
-        #draggable-emoji-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; border: 0.3vh dashed var(--cabin-frame-color); border-radius: 1rem; background-color: #FFF8E1; }
-        #draggable-emoji-container .emoji { font-size: 7vh; line-height: 1; }
+        .game-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            grid-template-rows: repeat(3, 1fr); 
+            gap: 1vh; 
+            background-color: var(--cabin-frame-color); 
+            border: 0.8vh solid var(--cabin-frame-color); 
+            border-radius: 1.5rem; 
+            padding: 0.8vh; 
+        }
+        
+        .grid-cell { 
+            background-color: var(--cabin-inner-color); 
+            border-radius: 0.8rem; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 5.5vh; 
+            position: relative;
+        }
+        
+        .grid-cell[data-anchor="true"] {
+            box-shadow: inset 0 0 0 0.5vh var(--highlight-color);
+        }
+        
+        .draggable-object-area { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 0.5vh; 
+            flex-shrink: 0; 
+        }
+        
+        #draggable-emoji-container { 
+            width: 100%;
+            height: 100%;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            border: 0.3vh dashed var(--cabin-frame-color); 
+            border-radius: 1rem; 
+            background-color: #FFF8E1; 
+        }
+        #draggable-emoji-container .emoji { 
+            font-size: 7vh; 
+            line-height: 1; 
+        }
+        
         .emoji { cursor: grab; text-shadow: 0.2rem 0.2rem 0.4rem rgba(0,0,0,0.2); }
         .emoji.dragging { opacity: 0.5; cursor: grabbing; }
         .emoji.immobile { cursor: not-allowed; }
-        .game-overlay, .feedback-overlay, .level-alert-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        .game-overlay { background-image: linear-gradient(rgba(248, 244, 230, 0.9), rgba(248, 244, 230, 0.9)), var(--bg-image); background-size: cover; background-position: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 100; padding: 2vh 5vw; box-sizing: border-box; }
-        .feedback-overlay { background-color: rgba(255, 255, 255, 0.15); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 150; }
-        .level-alert-overlay { z-index: 200; pointer-events: none; background: transparent; }
-        .level-alert-card { font-size: 4vh; font-weight: bold; padding: 1.5vh 3vh; border-radius: 1.5rem; box-shadow: 0 1rem 2rem rgba(0,0,0,0.3); animation: alert-pop 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        /* 覆蓋介面 */
+        .game-overlay, .feedback-overlay, .level-alert-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            text-align: center; 
+        }
+        
+        .game-overlay { 
+            background-image: linear-gradient(rgba(248, 244, 230, 0.9), rgba(248, 244, 230, 0.9)), var(--bg-image);
+            background-size: cover;
+            background-position: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 100; 
+            padding: 2vh 5vw; 
+            box-sizing: border-box; 
+        }
+        
+        .feedback-overlay { 
+            background-color: rgba(255, 255, 255, 0.15); 
+            backdrop-filter: blur(3px); 
+            -webkit-backdrop-filter: blur(3px);
+            z-index: 150; 
+        }
+        
+        .level-alert-overlay { 
+            z-index: 200; 
+            pointer-events: none; 
+            background: transparent;
+        }
+        
+        .level-alert-card {
+            font-size: 4vh;
+            font-weight: bold;
+            padding: 1.5vh 3vh;
+            border-radius: 1.5rem;
+            box-shadow: 0 1rem 2rem rgba(0,0,0,0.3);
+            animation: alert-pop 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
         .level-up { background-color: #28a745; color: #ffffff; }
         .level-down { background-color: #d9534f; color: #ffffff; }
-        @keyframes alert-pop { 0% { transform: scale(0.3) translateY(20px); opacity: 0; } 30% { transform: scale(1.1) translateY(0); opacity: 1; } 80% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.8) translateY(-20px); opacity: 0; } }
+        @keyframes alert-pop {
+            0% { transform: scale(0.3) translateY(20px); opacity: 0; }
+            30% { transform: scale(1.1) translateY(0); opacity: 1; }
+            80% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.8) translateY(-20px); opacity: 0; }
+        }
         .hidden { display: none !important; }
         .feedback-icon { font-size: 20vh; font-weight: bold; text-shadow: 0 0 2rem rgba(0,0,0,0.3); animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .feedback-icon.correct { color: #28a745; }
         .feedback-icon.wrong { color: #dc3545; }
         @keyframes pop-in { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .game-overlay h2 { font-size: 4.2vh; margin: 0.5vh 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.1); }
-        .game-button { font-size: 2.5vh; padding: 1vh 3vh; background-color: var(--button-color); color: white; border: none; border-radius: 1rem; cursor: pointer; margin-top: 1vh; box-shadow: 0 4px 10px rgba(92, 184, 92, 0.4); }
+        
+        .game-overlay h2 { 
+            font-size: 4.2vh; 
+            margin: 0.5vh 0; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .game-button { 
+            font-size: 2.5vh; 
+            padding: 1vh 3vh; 
+            background-color: var(--button-color); 
+            color: white; 
+            border: none; 
+            border-radius: 1rem; 
+            cursor: pointer; 
+            margin-top: 1vh;
+            box-shadow: 0 4px 10px rgba(92, 184, 92, 0.4);
+        }
         .game-button:hover { opacity: 0.9; transform: translateY(-1px); }
-        .login-layout { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 700px; height: 90vh; justify-content: space-between; }
-        .login-form-container { width: 100%; background: rgba(255, 255, 255, 0.6); padding: 1.5vh 3vw; border-radius: 15px; border: 2px solid var(--cabin-frame-color); }
-        .login-fields-row { display: flex; justify-content: space-around; gap: 20px; width: 100%; margin-bottom: 0.5vh; }
-        .form-group { display: flex; align-items: center; gap: 10px; font-size: 2.4vh; }
-        .form-group select { font-size: 2.2vh; padding: 0.5vh 1.5vh; border-radius: 0.5rem; border: 2px solid var(--cabin-frame-color); background: #fff; }
-        #login-leaderboard-container { width: 100%; height: 48vh; overflow-y: auto; border: 2px solid var(--cabin-inner-color); border-radius: 10px; background: rgba(255,255,255,0.75); margin-top: 1vh; }
-        #leaderboard-container { width: 100%; max-width: 650px; height: 40vh; overflow-y: auto; border: 2px solid var(--cabin-inner-color); border-radius: 10px; background: rgba(255,255,255,0.75); margin-top: 1vh; }
+        /* 登入介面專用版面 */
+        .login-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 700px;
+            height: 90vh;
+            justify-content: space-between;
+        }
+        .login-form-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 1.5vh 3vw;
+            border-radius: 15px;
+            border: 2px solid var(--cabin-frame-color);
+        }
+        .login-fields-row {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 0.5vh;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 2.4vh;
+        }
+        .form-group select {
+            font-size: 2.2vh;
+            padding: 0.5vh 1.5vh;
+            border-radius: 0.5rem;
+            border: 2px solid var(--cabin-frame-color);
+            background: #fff;
+        }
+        #login-leaderboard-container {
+            width: 100%;
+            height: 48vh; 
+            overflow-y: auto;
+            border: 2px solid var(--cabin-inner-color);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.75);
+            margin-top: 1vh;
+        }
+        #leaderboard-container { 
+            width: 100%; 
+            max-width: 650px; 
+            height: 40vh; 
+            overflow-y: auto; 
+            border: 2px solid var(--cabin-inner-color); 
+            border-radius: 10px; 
+            background: rgba(255,255,255,0.75); 
+            margin-top: 1vh; 
+        }
         .leaderboard { width: 100%; border-collapse: collapse; font-size: 2vh; }
         .leaderboard th, .leaderboard td { padding: 1vh; text-align: center; border-bottom: 1px solid rgba(139,69,19,0.2); }
-        .leaderboard th { background-color: var(--cabin-frame-color); color: #fff; position: sticky; top: 0; }
+        .leaderboard th { background-color: var(--cabin-frame-color); color: var(--bg-color); position: sticky; top: 0; }
         .leaderboard tr.current-player { background-color: var(--highlight-color) !important; font-weight: bold; }
         #player-rank { font-size: 2.3vh; font-weight: bold; color: var(--emphasis-color); margin: 0.5vh 0; }
-        .designer-credit { position: absolute; bottom: 0.3rem; right: 1.5rem; font-size: 1.2rem; color: rgba(139, 69, 19, 0.7); }
+        .designer-credit {
+            position: absolute;
+            bottom: 0.3rem;
+            right: 1.5rem;
+            font-size: 1.2rem;
+            color: rgba(139, 69, 19, 0.7);
+        }
     </style>
 </head>
 <body>
+    <!-- 遊戲主畫面 -->
     <div class="game-container hidden" id="game-main-interface">
         <div class="info-panel">
             <header><h1>森林裡的奇妙小屋</h1></header>
@@ -104,6 +377,8 @@
         </div>
         <div class="designer-credit">Designed by 陳綺雯老師</div>
     </div>
+
+    <!-- 登入畫面（內嵌即時排行榜） -->
     <div class="game-overlay" id="login-screen">
         <div class="login-layout">
             <h2>位置猜猜猜 🏠</h2>
@@ -133,12 +408,15 @@
                     <button class="game-button" id="login-button" style="margin-top: 0.5vh;">確定進入</button>
                 </div>
             </div>
+            
             <div style="width: 100%;">
-                <h3 style="margin: 0.5vh 0; font-size: 2.2vh; text-align: left; padding-left: 5px;">🏆 雲端實時排行榜 (Supabase)：</h3>
-                <div id="login-leaderboard-container">載入中...</div>
+                <h3 style="margin: 0.5vh 0; font-size: 2.2vh; text-align: left; padding-left: 5px;">🏆 龍虎榜（雲端實時同步）：</h3>
+                <div id="login-leaderboard-container">讀取雲端排行榜中...</div>
             </div>
         </div>
     </div>
+
+    <!-- 規則說明畫面 -->
     <div class="game-overlay hidden" id="instruction-screen">
         <h2>遊戲規則 📜</h2>
         <p style="font-size: 2.2vh; line-height: 1.6; max-width: 60rem; margin: 1.5vh 0;">
@@ -148,6 +426,8 @@
         </p>
         <button class="game-button" id="ready-button">準備好了！</button>
     </div>
+
+    <!-- 結算畫面 -->
     <div class="game-overlay hidden" id="end-screen">
         <h2>時間到！ ⏰</h2>
         <p id="end-message" style="font-size: 2.4vh; margin: 0.5vh 0;"></p>
@@ -155,21 +435,28 @@
         <div id="leaderboard-container"></div>
         <button class="game-button" id="replay-button">再玩一次</button>
     </div>
-    <div class="feedback-overlay hidden" id="feedback-overlay"><div class="feedback-icon" id="feedback-icon"></div></div>
-    <div class="level-alert-overlay hidden" id="level-alert-overlay"><div class="level-alert-card" id="level-alert-text"></div></div>
+
+    <!-- 答題回饋浮層 -->
+    <div class="feedback-overlay hidden" id="feedback-overlay">
+        <div class="feedback-icon" id="feedback-icon"></div>
+    </div>
+
+    <!-- 升降級文字動畫浮層 -->
+    <div class="level-alert-overlay hidden" id="level-alert-overlay">
+        <div class="level-alert-card" id="level-alert-text"></div>
+    </div>
 
     <script>
-    // --- 版本 9.2 (終極穩定兼容版) ---
-    // JavaScript 程式碼將於 DOM 載入後，才進行 Supabase 初始化，確保 100% 成功
-
-    // ★ 黏貼您在步驟 3.3 & 3.4 獲取的金鑰 ★
-    const SUPABASE_URL = "https://hxellykmyrrmfqhkdkvu.supabase.co"; 
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4ZWxseWtteXJybWZxaGtka3Z1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMjQ0NDcsImV4cCI6MjEwNzcwMDQ0N30.tQ2gqW6oIUtJXXOhQccOmscSQnfHF0wFNm0RxgCNGHQ"; 
-
-    // 將所有變數宣告移至頂層
-    let supabase = null;
-    let isCloudConnected = false;
+    // ====================================================
+    // ★ 1. 您的全新 Supabase 連線資訊 (已設定完成) ★
+    // ====================================================
+    const SUPABASE_URL = "https://mzwiaaftaftfmyyvxjfp.supabase.co"; 
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16d2lhYWZ0YWZ0Zm15eXZ4amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMzAyNTMsImV4cCI6MjEwNzcwNjI1M30.d0kbPJHoHQFrOBaOEsqGCAMQ7NPKovzYUZDjzkx5v6Q";
     
+    // 初始化 Supabase 客戶端
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const IS_DEBUG_MODE = true; 
     const playerRank = document.getElementById('player-rank');
     const feedbackOverlay = document.getElementById('feedback-overlay');
     const feedbackIcon = document.getElementById('feedback-icon');
@@ -196,12 +483,10 @@
     const endMessage = document.getElementById('end-message');
     const leaderboardContainer = document.getElementById('leaderboard-container');
     const loginLeaderboardContainer = document.getElementById('login-leaderboard-container');
-    
     const TEACHER_LIST = ["陳麗嫦校長", "陳子殷老師", "陳珮容老師", "楊靖霖老師", "陳懿文主任", "呂常欣老師"];
     const GRID_ROWS = 3, GRID_COLS = 4, TOTAL_TIME = 60; 
     let score = 0, timer = TOTAL_TIME, timerInterval, currentUser = null; 
     let questionCounter = 0;
-    let cloudLeaderboardCache = []; 
     let currentLevel = 1; 
     let consecutiveCorrect = 0; 
     let consecutiveWrong = 0;   
@@ -216,205 +501,712 @@
     let initialX = 0, initialY = 0;
     let currentQuestionData = null;
 
-    // --- 遊戲核心函數 ---
-    
-    // (此處省略遊戲核心函數，與 v9.1 完全相同，為求簡潔)
-    
-    // --- ★ Supabase 雲端非同步數據函數 (加入錯誤捕捉安全鎖) ★ ---
-    async function fetchCloudLeaderboard() {
-        if (!isCloudConnected || !supabase) {
-            console.log("Supabase 未連接，使用本地緩存模式。");
-            try {
-                const data = localStorage.getItem('mathGameLeaderboardBackup');
-                cloudLeaderboardCache = data ? JSON.parse(data) : [];
-                cloudLeaderboardCache.sort((a,b) => b.score - a.score);
-            } catch(e) {
-                cloudLeaderboardCache = [];
-            }
-            renderLeaderboardToDOM();
-            return;
-        }
-
+    // ====================================================
+    // ★ 2. 雲端資料庫操作函數 ★
+    // ====================================================
+    async function getLeaderboardFromCloud() {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('leaderboard')
-                .select('class, student_id, score, plays_count')
+                .select('*')
                 .order('score', { ascending: false })
-                .limit(100);
+                .limit(50);
             
             if (error) throw error;
-            
-            cloudLeaderboardCache = data.map(item => ({
-                class: item.class,
-                id: item.student_id,
-                score: item.score,
-                playsCount: item.plays_count
-            }));
-            
-            renderLeaderboardToDOM();
+            return data || [];
         } catch (err) {
-            console.error("抓取雲端排行失敗，切換至本機備份:", err);
-            try {
-                const data = localStorage.getItem('mathGameLeaderboardBackup');
-                cloudLeaderboardCache = data ? JSON.parse(data) : [];
-                cloudLeaderboardCache.sort((a,b) => b.score - a.score);
-            } catch(e) { cloudLeaderboardCache = []; }
-            renderLeaderboardToDOM();
+            console.error("無法從 Supabase 取得排行榜數據:", err);
+            return [];
         }
     }
 
-    async function saveScoreToCloud(className, studentId, finalScore) {
-        // 先寫入本地備份，雙重保障
-        try {
-            let leaderboard = localStorage.getItem('mathGameLeaderboardBackup');
-            leaderboard = leaderboard ? JSON.parse(leaderboard) : [];
-            const idx = leaderboard.findIndex(p => p.class === className && p.id === studentId);
-            if (idx > -1) {
-                leaderboard[idx].playsCount = (leaderboard[idx].playsCount || 1) + 1;
-                leaderboard[idx].score = Math.max(leaderboard[idx].score, finalScore);
-            } else {
-                leaderboard.push({ class: className, id: studentId, score: finalScore, playsCount: 1 });
-            }
-            localStorage.setItem('mathGameLeaderboardBackup', JSON.stringify(leaderboard));
-        } catch(e) { console.error("本機備份儲存失敗", e); }
+    async function initLoginScreenLeaderboard() {
+        const leaderboard = await getLeaderboardFromCloud(); 
+        let html = '<table class="leaderboard"><thead><tr><th>排名</th><th>班別</th><th>學號 / 姓名</th><th>最高分數</th><th>挑戰次數</th></tr></thead><tbody>'; 
         
-        if (!isCloudConnected || !supabase) return;
+        if (leaderboard.length === 0) { 
+            html += '<tr><td colspan="5">暫無記錄，期待你的首個挑戰！</td></tr>'; 
+        } else { 
+            leaderboard.forEach((player, index) => { 
+                const rank = index + 1; 
+                html += `<tr>
+                    <td>${rank}</td>
+                    <td>${player.student_class}</td>
+                    <td>${player.student_name}</td>
+                    <td>${player.score}</td>
+                    <td>${player.time_spent || 1} 次</td>
+                </tr>`; 
+            }); 
+        } 
+        html += '</tbody></table>'; 
+        loginLeaderboardContainer.innerHTML = html;
+    }
 
+    async function displayLeaderboard() { 
+        const leaderboard = await getLeaderboardFromCloud(); 
+        let html = '<table class="leaderboard"><thead><tr><th>排名</th><th>班別</th><th>學號 / 姓名</th><th>最高分數</th><th>挑戰次數</th></tr></thead><tbody>'; 
+        let currentPlayerRank = -1; 
+        
+        if (leaderboard.length === 0) { 
+            html += '<tr><td colspan="5">暫無記錄</td></tr>'; 
+        } else { 
+            leaderboard.forEach((player, index) => { 
+                const rank = index + 1; 
+                const isCurrentUser = currentUser && player.student_class === currentUser.class && player.student_name === currentUser.id; 
+                if (isCurrentUser) currentPlayerRank = rank; 
+                html += `<tr class="${isCurrentUser ? 'current-player' : ''}">
+                    <td>${rank}</td>
+                    <td>${player.student_class}</td>
+                    <td>${player.student_name}</td>
+                    <td>${player.score}</td>
+                    <td>${player.time_spent || 1} 次</td>
+                </tr>`; 
+            }); 
+        } 
+        html += '</tbody></table>'; 
+        leaderboardContainer.innerHTML = html; 
+        
+        if (currentPlayerRank > 0) { 
+            playerRank.textContent = `你現時排行第 ${currentPlayerRank} 位`; 
+        } else { 
+            playerRank.textContent = ''; 
+        } 
+        await initLoginScreenLeaderboard();
+    }
+
+    async function saveScore(className, studentId, score) { 
         try {
-            const { data: existingRecords, error: fetchError } = await supabase
+            const { data: existingRecords, error: fetchError } = await supabaseClient
                 .from('leaderboard')
                 .select('*')
-                .eq('class', className)
-                .eq('student_id', studentId);
+                .eq('student_class', className)
+                .eq('student_name', studentId);
 
             if (fetchError) throw fetchError;
 
             if (existingRecords && existingRecords.length > 0) {
                 const record = existingRecords[0];
-                const updatedScore = Math.max(record.score, finalScore);
-                const updatedPlays = (record.plays_count || 1) + 1;
-                const { error: updateError } = await supabase
+                const newPlaysCount = (record.time_spent || 1) + 1; 
+                const updateData = { time_spent: newPlaysCount };
+
+                if (score > record.score) { 
+                    updateData.score = score; 
+                } 
+
+                const { error: updateError } = await supabaseClient
                     .from('leaderboard')
-                    .update({ score: updatedScore, plays_count: updatedPlays })
+                    .update(updateData)
                     .eq('id', record.id);
+
                 if (updateError) throw updateError;
             } else {
-                const { error: insertError } = await supabase
+                const { error: insertError } = await supabaseClient
                     .from('leaderboard')
-                    .insert([{ 
-                        class: className, 
-                        student_id: studentId, 
-                        score: finalScore, 
-                        plays_count: 1 
-                    }]);
+                    .insert([
+                        { 
+                            student_class: className, 
+                            student_name: studentId, 
+                            score: score,
+                            time_spent: 1
+                        }
+                    ]);
+
                 if (insertError) throw insertError;
             }
-            
-            await fetchCloudLeaderboard();
+            await displayLeaderboard();
         } catch (err) {
-            console.error("上傳至 Supabase 失敗:", err);
+            console.error("上傳分數至 Supabase 失敗:", err);
         }
     }
 
-    // --- ★ DOM 渲染與事件綁定 ★ ---
-    function renderLeaderboardToDOM() {
-        let html = '<table class="leaderboard"><thead><tr><th>排名</th><th>班別</th><th>學號 / 姓名</th><th>最高分數</th><th>挑選次數</th></tr></thead><tbody>';
-        let currentPlayerRank = -1;
-        
-        const leaderboardData = cloudLeaderboardCache || [];
+    // ====================================================
+    // ★ 3. 遊戲邏輯控制 ★
+    // ====================================================
+    function handleClassSelectionChange() {
+        const selectedClass = classSelect.value;
+        studentIdSelect.innerHTML = '<option value="">請選擇...</option>';
+        if (!selectedClass) {
+            idOrNameLabel.textContent = '學號:';
+            studentIdSelect.innerHTML = '<option value="">請先選擇班別</option>';
+            return;
+        }
+        if (selectedClass === '教師') {
+            idOrNameLabel.textContent = '姓名:';
+            TEACHER_LIST.forEach(teacher => {
+                const opt = document.createElement('option');
+                opt.value = teacher;
+                opt.textContent = teacher;
+                studentIdSelect.appendChild(opt);
+            });
+        } else {
+            idOrNameLabel.textContent = '學號:';
+            for (let i = 1; i <= 35; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `${i} 號`;
+                studentIdSelect.appendChild(opt);
+            }
+        }
+    }
 
-        if (leaderboardData.length === 0) { 
-            html += '<tr><td colspan="5">暫無記錄，期待你的第一個紀錄！</td></tr>'; 
-        } else { 
-            leaderboardData.forEach((player, index) => { 
-                const rank = index + 1; 
-                const isCurrentUser = currentUser && player.class === currentUser.class && player.id === currentUser.id; 
-                if (isCurrentUser) currentPlayerRank = rank; 
-                html += `<tr class="${isCurrentUser ? 'current-player' : ''}">
-                    <td>${rank}</td><td>${player.class}</td><td>${player.id}</td>
-                    <td>${player.score}</td><td>${player.playsCount || 1} 次</td>
-                </tr>`; 
-            }); 
+    function handleLogin() { 
+        const className = classSelect.value; 
+        const studentId = studentIdSelect.value; 
+        if (!className || !studentId) { 
+            loginError.textContent = '請完整選擇班別及學號/姓名！'; 
+            return; 
         } 
-        html += '</tbody></table>'; 
-        
-        loginLeaderboardContainer.innerHTML = html;
-        if (leaderboardContainer) leaderboardContainer.innerHTML = html;
+        currentUser = { class: className, id: studentId }; 
+        loginError.textContent = ''; 
+        playSound('click'); 
+        loginScreen.classList.add('hidden'); 
+        instructionScreen.classList.remove('hidden'); 
+    }
 
-        if (playerRank && currentPlayerRank > 0) { 
-            playerRank.textContent = `你現時排行第 ${currentPlayerRank} 位`; 
-        } else if (playerRank) { 
-            playerRank.textContent = ''; 
+    function startGame() { 
+        playSound('click'); 
+        instructionScreen.classList.add('hidden'); 
+        endScreen.classList.add('hidden'); 
+        gameMainInterface.classList.remove('hidden'); 
+        score = 0; 
+        timer = TOTAL_TIME; 
+        questionCounter = 0;  
+        currentLevel = 1;
+        consecutiveCorrect = 0;
+        consecutiveWrong = 0;
+        updateStatus(); 
+        generateQuestion(); 
+        clearInterval(timerInterval); 
+        timerInterval = setInterval(() => { 
+            timer--; 
+            updateStatus(); 
+            if (timer <= 5 && timer > 0) playSound('tick'); 
+            if (timer <= 0) endGame(); 
+        }, 1000); 
+    }
+
+    function updateStatus() { 
+        timerDisplay.textContent = `遊戲時間: ${timer}`; 
+        scoreDisplay.textContent = `分數: ${score}`; 
+        diffLevelDisplay.textContent = LEVEL_NAMES[currentLevel];
+        diffStreakDisplay.textContent = currentLevel < 3 ? `(連勝: ${consecutiveCorrect}/3)` : `(最高階)`;
+    }
+
+    function triggerLevelAlert(isUp, newLevel) {
+        levelAlertText.textContent = isUp ? `等級提升！${LEVEL_NAMES[newLevel]}` : `難度調整至 ${LEVEL_NAMES[newLevel]}`;
+        levelAlertText.className = `level-alert-card ${isUp ? 'level-up' : 'level-down'}`;
+        levelAlertOverlay.classList.remove('hidden');
+        setTimeout(() => {
+            levelAlertOverlay.classList.add('hidden');
+        }, 1200);
+    }
+
+    function generateQuestion() { 
+        gameGrid.innerHTML = ''; 
+        draggableContainer.innerHTML = ''; 
+        currentQuestionData = null;
+        if (IS_DEBUG_MODE) { 
+            console.log(`第 ${questionCounter + 1} 題 | 等級: Level ${currentLevel}`); 
+        } 
+        try { 
+            if (currentLevel === 1) {
+                generateLevel1Question();
+            } else if (currentLevel === 2) {
+                if (questionCounter > 0 && (questionCounter + 1) % 4 === 0) {
+                    generateBetweenQuestion();
+                } else {
+                    generateLevel2Question();
+                }
+            } else {
+                generateLevel3Question();
+            }
+        } catch (error) { 
+            console.error("生成題目發生錯誤，使用備援題:", error); 
+            generateLevel1Question(); 
         } 
     }
 
-    function handleClassSelectionChange() {
-        try {
-            const selectedClass = classSelect.value;
-            studentIdSelect.innerHTML = '<option value="">請選擇...</option>';
-
-            if (!selectedClass) {
-                idOrNameLabel.textContent = '學號:';
-                studentIdSelect.innerHTML = '<option value="">請先選擇班別</option>';
-                return;
-            }
-
-            if (selectedClass === '教師') {
-                idOrNameLabel.textContent = '姓名:';
-                TEACHER_LIST.forEach(teacher => {
-                    const opt = document.createElement('option');
-                    opt.value = teacher;
-                    opt.textContent = teacher;
-                    studentIdSelect.appendChild(opt);
-                });
-            } else {
-                idOrNameLabel.textContent = '學號:';
-                for (let i = 1; i <= 35; i++) {
-                    const opt = document.createElement('option');
-                    opt.value = i;
-                    opt.textContent = `${i} 號`;
-                    studentIdSelect.appendChild(opt);
+    function generateLevel1Question() {
+        const types = ['above', 'below', 'left', 'right'];
+        const qType = types[Math.floor(Math.random() * types.length)];
+        let [subjectEmoji, anchorEmoji] = getRandomItems(TARGET_EMOJIS, 2);
+        
+        let anchorRow, anchorCol, possibleSolutions = [];
+        while (possibleSolutions.length === 0) {
+            do {
+                anchorRow = Math.floor(Math.random() * GRID_ROWS);
+                anchorCol = Math.floor(Math.random() * GRID_COLS);
+            } while (!isValidAnchorPosition(anchorRow, anchorCol, qType));
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    if (checkAnswerLogic(r, c, anchorRow, anchorCol, qType)) {
+                        possibleSolutions.push({ r, c });
+                    }
                 }
             }
-        } catch (e) {
-            console.error("產生下拉選單出錯：", e);
         }
-    }
-    
-    // --- 遊戲啟動程序 ---
-    document.addEventListener('DOMContentLoaded', () => {
-        // ★ 核心修復：在 DOM 完全載入後才初始化 Supabase ★
-        try {
-            if (window.supabase) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                isCloudConnected = true;
-                console.log("Supabase 引擎成功初始化。");
-            } else {
-                 console.error("Supabase SDK 未能成功從 CDN 載入。");
-            }
-        } catch (e) {
-            console.error("Supabase 初始化異常，已自動進入本機緩存模式：", e);
-        }
-
-        // 不論雲端是否成功，都保證執行以下關鍵功能
-        handleClassSelectionChange();
-        fetchCloudLeaderboard();
         
-        // 綁定所有事件
-        classSelect.addEventListener('change', handleClassSelectionChange);
-        loginButton.addEventListener('click', handleLogin);
-        readyButton.addEventListener('click', startGame);
-        replayButton.addEventListener('click', replayGame);
-        gameGrid.addEventListener('dragover', e => e.preventDefault());
-        gameGrid.addEventListener('drop', e => { 
-            e.preventDefault(); 
-            handleDrop(e.target); 
-            handleDragEnd(); 
-        });
+        const anchorIndex = anchorRow * GRID_COLS + anchorCol;
+        const targetSol = possibleSolutions[Math.floor(Math.random() * possibleSolutions.length)];
+        const solutionIndex = targetSol.r * GRID_COLS + targetSol.c;
+        const gridState = Array(GRID_ROWS * GRID_COLS).fill(null);
+        gridState[anchorIndex] = anchorEmoji;
+        let availableSpots = [];
+        for (let i = 0; i < GRID_ROWS * GRID_COLS; i++) {
+            if (i !== anchorIndex && i !== solutionIndex) availableSpots.push(i);
+        }
+        shuffleArray(availableSpots);
+        const distCount = Math.floor(Math.random() * 2) + 1;
+        const distractors = getRandomItems(DISTRACTOR_EMOJIS, distCount);
+        for (let i = 0; i < distCount; i++) {
+            gridState[availableSpots.pop()] = distractors[i];
+        }
+        renderGrid(gridState, [anchorIndex]);
+        instructionText.innerHTML = `<span class="emoji">${subjectEmoji}</span> 在 <span class="emoji">${anchorEmoji}</span> 的${TEXT_MAP[qType]}`;
+        currentQuestionData = { level: 1, type: qType, subject: subjectEmoji };
+        draggableContainer.appendChild(createDraggableEmoji(subjectEmoji, qType));
+    }
+
+    function generateLevel2Question() {
+        const types = ['above', 'below', 'left', 'right'];
+        const qType = types[Math.floor(Math.random() * types.length)];
+        const isSVO = Math.random() < 0.5;
+        let [subjectEmoji, anchorEmoji] = getRandomItems(TARGET_EMOJIS, 2);
+        
+        let anchorRow, anchorCol, possibleSolutions = [];
+        while (possibleSolutions.length === 0) {
+            do {
+                anchorRow = Math.floor(Math.random() * GRID_ROWS);
+                anchorCol = Math.floor(Math.random() * GRID_COLS);
+            } while (!isValidAnchorPosition(anchorRow, anchorCol, qType));
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    if (checkAnswerLogic(r, c, anchorRow, anchorCol, qType)) {
+                        possibleSolutions.push({ r, c });
+                    }
+                }
+            }
+        }
+        
+        const anchorIndex = anchorRow * GRID_COLS + anchorCol;
+        const targetSol = possibleSolutions[Math.floor(Math.random() * possibleSolutions.length)];
+        const solutionIndex = targetSol.r * GRID_COLS + targetSol.c;
+        const gridState = Array(GRID_ROWS * GRID_COLS).fill(null);
+        gridState[anchorIndex] = anchorEmoji;
+        let availableSpots = [];
+        for (let i = 0; i < GRID_ROWS * GRID_COLS; i++) {
+            if (i !== anchorIndex && i !== solutionIndex) availableSpots.push(i);
+        }
+        shuffleArray(availableSpots);
+        const distCount = Math.floor(Math.random() * 2) + 3;
+        const distractors = getRandomItems(DISTRACTOR_EMOJIS, distCount);
+        for (let i = 0; i < distCount; i++) {
+            gridState[availableSpots.pop()] = distractors[i];
+        }
+        renderGrid(gridState, [anchorIndex]);
+        if (isSVO) {
+            instructionText.innerHTML = `<span class="emoji">${subjectEmoji}</span> 在 <span class="emoji">${anchorEmoji}</span> 的${TEXT_MAP[qType]}`;
+        } else {
+            instructionText.innerHTML = `<span class="emoji">${anchorEmoji}</span> 的${TEXT_MAP[qType]}是 <span class="emoji">${subjectEmoji}</span>`;
+        }
+        
+        currentQuestionData = { level: 2, type: qType, subject: subjectEmoji };
+        draggableContainer.appendChild(createDraggableEmoji(subjectEmoji, qType));
+    }
+
+    function generateLevel3Question() {
+        let [subjectEmoji, anchor1Emoji, anchor2Emoji] = getRandomItems(TARGET_EMOJIS, 3);
+        
+        const solRow = Math.floor(Math.random() * GRID_ROWS);
+        const solCol = Math.floor(Math.random() * GRID_COLS);
+        const solutionIndex = solRow * GRID_COLS + solCol;
+        let hType, anchor1Col;
+        if (solCol === 0) {
+            hType = 'left'; 
+            anchor1Col = Math.floor(Math.random() * (GRID_COLS - 1)) + 1;
+        } else if (solCol === GRID_COLS - 1) {
+            hType = 'right'; 
+            anchor1Col = Math.floor(Math.random() * (GRID_COLS - 1));
+        } else {
+            hType = Math.random() < 0.5 ? 'left' : 'right';
+            if (hType === 'left') {
+                const possible = [];
+                for (let c = solCol + 1; c < GRID_COLS; c++) possible.push(c);
+                anchor1Col = possible[Math.floor(Math.random() * possible.length)];
+            } else {
+                const possible = [];
+                for (let c = 0; c < solCol; c++) possible.push(c);
+                anchor1Col = possible[Math.floor(Math.random() * possible.length)];
+            }
+        }
+        const anchor1Index = solRow * GRID_COLS + anchor1Col;
+        let vType, anchor2Row;
+        if (solRow === 0) {
+            vType = 'above'; 
+            anchor2Row = Math.floor(Math.random() * (GRID_ROWS - 1)) + 1;
+        } else if (solRow === GRID_ROWS - 1) {
+            vType = 'below'; 
+            anchor2Row = Math.floor(Math.random() * (GRID_ROWS - 1));
+        } else {
+            vType = Math.random() < 0.5 ? 'above' : 'below';
+            if (vType === 'above') {
+                const possible = [];
+                for (let r = solRow + 1; r < GRID_ROWS; r++) possible.push(r);
+                anchor2Row = possible[Math.floor(Math.random() * possible.length)];
+            } else {
+                const possible = [];
+                for (let r = 0; r < solRow; r++) possible.push(r);
+                anchor2Row = possible[Math.floor(Math.random() * possible.length)];
+            }
+        }
+        const anchor2Index = anchor2Row * GRID_COLS + solCol;
+        const gridState = Array(GRID_ROWS * GRID_COLS).fill(null);
+        gridState[anchor1Index] = anchor1Emoji;
+        gridState[anchor2Index] = anchor2Emoji;
+        let availableSpots = [];
+        for (let i = 0; i < GRID_ROWS * GRID_COLS; i++) {
+            if (i !== anchor1Index && i !== anchor2Index && i !== solutionIndex) availableSpots.push(i);
+        }
+        shuffleArray(availableSpots);
+        const distCount = Math.random() < 0.5 ? 0 : 1; 
+        const distractors = getRandomItems(DISTRACTOR_EMOJIS, distCount);
+        for (let i = 0; i < distCount; i++) {
+            gridState[availableSpots.pop()] = distractors[i];
+        }
+        renderGrid(gridState, [anchor1Index, anchor2Index]);
+        instructionText.innerHTML = `<span class="emoji">${subjectEmoji}</span> 在 <span class="emoji">${anchor1Emoji}</span> 的${TEXT_MAP[hType]}，<span style="color:var(--emphasis-color)">且</span>在 <span class="emoji">${anchor2Emoji}</span> 的${TEXT_MAP[vType]}`;
+        currentQuestionData = { 
+            level: 3, 
+            type: 'dual_condition', 
+            solRow, 
+            solCol, 
+            subject: subjectEmoji 
+        };
+        draggableContainer.appendChild(createDraggableEmoji(subjectEmoji, 'dual_condition'));
+    }
+
+    function generateBetweenQuestion() { 
+        let [subjectEmoji, anchorEmoji1, anchorEmoji2] = getRandomItems(TARGET_EMOJIS, 3); 
+        const possibleTriplets = []; 
+        for (let r = 0; r < GRID_ROWS; r++) { 
+            for (let c = 0; c <= GRID_COLS - 3; c++) { 
+                possibleTriplets.push([{r,c}, {r,c:c+1}, {r,c:c+2}]); 
+            } 
+        } 
+        for (let c = 0; c < GRID_COLS; c++) { 
+            for (let r = 0; r <= GRID_ROWS - 3; r++) { 
+                possibleTriplets.push([{r,c}, {r:r+1,c}, {r:r+2,c}]); 
+            } 
+        } 
+        const triplet = possibleTriplets[Math.floor(Math.random() * possibleTriplets.length)]; 
+        const [pos1, solutionPos, pos2] = triplet; 
+        const [anchor1Pos, anchor2Pos] = Math.random() < 0.5 ? [pos1, pos2] : [pos2, pos1]; 
+        const anchor1Index = anchor1Pos.r * GRID_COLS + anchor1Pos.c; 
+        const anchor2Index = anchor2Pos.r * GRID_COLS + anchor2Pos.c; 
+        const solutionIndex = solutionPos.r * GRID_COLS + solutionPos.c; 
+        let availableSpots = []; 
+        for (let i = 0; i < GRID_ROWS * GRID_COLS; i++) { 
+            if (i !== anchor1Index && i !== anchor2Index && i !== solutionIndex) availableSpots.push(i); 
+        } 
+        shuffleArray(availableSpots); 
+        const gridState = Array(GRID_ROWS * GRID_COLS).fill(null); 
+        gridState[anchor1Index] = anchorEmoji1; 
+        gridState[anchor2Index] = anchorEmoji2; 
+        
+        const distCount = Math.floor(Math.random() * 2) + 2; 
+        const distractors = getRandomItems(DISTRACTOR_EMOJIS, distCount); 
+        for (let i = 0; i < distCount; i++) { 
+            const spot = availableSpots.pop(); 
+            if (spot !== undefined) gridState[spot] = distractors[i]; 
+        } 
+        renderGrid(gridState, [anchor1Index, anchor2Index]); 
+        instructionText.innerHTML = `<span class="emoji">${subjectEmoji}</span> 在 <span class="emoji">${anchorEmoji1}</span> 和 <span class="emoji">${anchorEmoji2}</span> 之間`; 
+        
+        currentQuestionData = { level: 2, type: 'between', subject: subjectEmoji };
+        draggableContainer.appendChild(createDraggableEmoji(subjectEmoji, 'between')); 
+    }
+
+    function handleDrop(target) { 
+        if (isChecking) return; 
+        const cell = target ? target.closest('.grid-cell') : null; 
+        const isAnswerCorrect = cell && !cell.hasChildNodes() && checkAnswer(cell); 
+        
+        if (isAnswerCorrect) { 
+            playSound('correct'); 
+            score += LEVEL_SCORES[currentLevel]; 
+            questionCounter++; 
+            consecutiveWrong = 0;
+            consecutiveCorrect++;
+            if (consecutiveCorrect >= 3 && currentLevel < 3) {
+                currentLevel++;
+                consecutiveCorrect = 0;
+                triggerLevelAlert(true, currentLevel);
+            }
+            updateStatus(); 
+            const tempEmoji = draggedElement.cloneNode(true); 
+            tempEmoji.classList.remove('dragging'); 
+            cell.appendChild(tempEmoji); 
+            if (draggedElement.parentElement) { 
+                draggedElement.parentElement.removeChild(draggedElement); 
+            } 
+            showFeedback(true); 
+        } else { 
+            if (draggedElement) { 
+                playSound('wrong'); 
+                consecutiveCorrect = 0;
+                consecutiveWrong++;
+                if (currentLevel === 3) {
+                    currentLevel = 2;
+                    consecutiveWrong = 0;
+                    triggerLevelAlert(false, currentLevel);
+                } else if (currentLevel === 2 && consecutiveWrong >= 2) {
+                    currentLevel = 1;
+                    consecutiveWrong = 0;
+                    triggerLevelAlert(false, currentLevel);
+                }
+                updateStatus();
+                showFeedback(false); 
+            } 
+        } 
+    }
+
+    function checkAnswer(droppedCell) { 
+        if (!draggedElement) return false; 
+        const droppedRow = parseInt(droppedCell.dataset.row); 
+        const droppedCol = parseInt(droppedCell.dataset.col); 
+        
+        if (currentQuestionData && currentQuestionData.type === 'dual_condition') {
+            return droppedRow === currentQuestionData.solRow && droppedCol === currentQuestionData.solCol;
+        }
+        const questionType = draggedElement.dataset.questionType; 
+        const anchorCells = gameGrid.querySelectorAll('.grid-cell[data-anchor="true"]'); 
+        if (anchorCells.length === 0) return false; 
+        if (questionType === 'between') { 
+            if (anchorCells.length < 2) return false; 
+            const r1 = parseInt(anchorCells[0].dataset.row), c1 = parseInt(anchorCells[0].dataset.col); 
+            const r2 = parseInt(anchorCells.dataset.row), c2 = parseInt(anchorCells.dataset.col); 
+            if (c1 === c2) { 
+                return droppedCol === c1 && droppedRow > Math.min(r1, r2) && droppedRow < Math.max(r1, r2); 
+            } else if (r1 === r2) { 
+                return droppedRow === r1 && droppedCol > Math.min(c1, c2) && droppedCol < Math.max(c1, c2); 
+            } 
+        } else { 
+            const anchorRow = parseInt(anchorCells[0].dataset.row); 
+            const anchorCol = parseInt(anchorCells[0].dataset.col); 
+            return checkAnswerLogic(droppedRow, droppedCol, anchorRow, anchorCol, questionType); 
+        } 
+        return false; 
+    }
+
+    function checkAnswerLogic(droppedRow, droppedCol, anchorRow, anchorCol, questionType) { 
+        switch (questionType) { 
+            case 'above': return droppedCol === anchorCol && droppedRow < anchorRow; 
+            case 'below': return droppedCol === anchorCol && droppedRow > anchorRow; 
+            case 'left': return droppedRow === anchorRow && droppedCol < anchorCol; 
+            case 'right': return droppedRow === anchorRow && droppedCol > anchorCol; 
+            default: return false; 
+        } 
+    }
+
+    function renderGrid(gridState, anchorIndices) { 
+        gameGrid.innerHTML = ''; 
+        for (let i = 0; i < gridState.length; i++) { 
+            const cell = document.createElement('div'); 
+            cell.classList.add('grid-cell'); 
+            cell.dataset.row = Math.floor(i / GRID_COLS); 
+            cell.dataset.col = i % GRID_COLS; 
+            if (gridState[i]) { 
+                const emojiSpan = document.createElement('span'); 
+                emojiSpan.classList.add('emoji', 'immobile'); 
+                emojiSpan.textContent = gridState[i]; 
+                if (anchorIndices.includes(i)) cell.dataset.anchor = "true"; 
+                cell.appendChild(emojiSpan); 
+            } 
+            gameGrid.appendChild(cell); 
+        } 
+    }
+
+    function showFeedback(isCorrect) { 
+        feedbackIcon.textContent = isCorrect ? '✓' : '✗'; 
+        feedbackIcon.className = 'feedback-icon ' + (isCorrect ? 'correct' : 'wrong'); 
+        feedbackOverlay.classList.remove('hidden'); 
+        isChecking = true; 
+        setTimeout(() => { 
+            feedbackOverlay.classList.add('hidden'); 
+            if (isCorrect) generateQuestion(); 
+            isChecking = false; 
+        }, 700); 
+    }
+
+    function playSound(type) { 
+        if (!audioContext) return; 
+        if (audioContext.state === 'suspended') audioContext.resume(); 
+        const o = audioContext.createOscillator(), g = audioContext.createGain(); 
+        o.connect(g); 
+        g.connect(audioContext.destination); 
+        switch (type) { 
+            case 'click': 
+                o.type = 'sine'; o.frequency.setValueAtTime(440, audioContext.currentTime); 
+                g.gain.setValueAtTime(0.5, audioContext.currentTime); 
+                g.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2); 
+                break; 
+            case 'correct': 
+                o.type = 'triangle'; o.frequency.setValueAtTime(523.25, audioContext.currentTime); 
+                o.frequency.linearRampToValueAtTime(1046.50, audioContext.currentTime + 0.15); 
+                g.gain.setValueAtTime(0.3, audioContext.currentTime); 
+                g.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2); 
+                break; 
+            case 'wrong': 
+                o.type = 'square'; o.frequency.setValueAtTime(220, audioContext.currentTime); 
+                g.gain.setValueAtTime(0.3, audioContext.currentTime); 
+                g.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3); 
+                break; 
+            case 'tick': 
+                o.type = 'sine'; o.frequency.setValueAtTime(880, audioContext.currentTime); 
+                g.gain.setValueAtTime(0.2, audioContext.currentTime); 
+                g.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1); 
+                break; 
+            case 'gameOver': 
+                o.type = 'sawtooth'; o.frequency.setValueAtTime(440, audioContext.currentTime); 
+                o.frequency.linearRampToValueAtTime(220, audioContext.currentTime + 0.5); 
+                g.gain.setValueAtTime(0.4, audioContext.currentTime); 
+                g.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5); 
+                break; 
+        } 
+        o.start(); 
+        o.stop(audioContext.currentTime + 0.5); 
+    }
+
+    function endGame() { 
+        clearInterval(timerInterval); 
+        playSound('gameOver'); 
+        gameMainInterface.classList.add('hidden'); 
+        endMessage.innerHTML = `你在 ${TOTAL_TIME} 秒內累計得分：<strong>${score} 分</strong>！<br>答對題數：${questionCounter} 題`; 
+        saveScore(currentUser.class, currentUser.id, score); 
+        displayLeaderboard(); 
+        endScreen.classList.remove('hidden'); 
+    }
+
+    function replayGame() { 
+        playSound('click'); 
+        endScreen.classList.add('hidden'); 
+        initLoginScreenLeaderboard();
+        loginScreen.classList.remove('hidden'); 
+    }
+
+    function handleDragStart(e) { 
+        if (isChecking) { e.preventDefault(); return; } 
+        draggedElement = e.target; 
+        setTimeout(() => { if (draggedElement) draggedElement.style.visibility = 'hidden'; }, 0); 
+    }
+
+    function handleDragEnd() { 
+        if (draggedElement) draggedElement.style.visibility = 'visible'; 
+        draggedElement = null; 
+    }
+
+    function handleTouchStart(e) { 
+        if (isChecking) { e.preventDefault(); return; } 
+        e.preventDefault(); 
+        draggedElement = e.target; 
+        const touch = e.touches[0]; 
+        initialX = touch.clientX; 
+        initialY = touch.clientY; 
+        draggedElement.classList.add('dragging'); 
+        document.addEventListener('touchmove', handleTouchMove, { passive: false }); 
+        document.addEventListener('touchend', handleTouchEnd); 
+    }
+
+    // 修復了雙重條件下觸發拖曳時的坐標問題
+    function handleTouchMove(e) { 
+        e.preventDefault(); 
+        if (!draggedElement) return; 
+        const touch = e.touches[0]; 
+        const dx = touch.clientX - initialX; 
+        const dy = touch.clientY - initialY; 
+        draggedElement.style.transform = `translate(${dx}px, ${dy}px)`; 
+    }
+
+    function handleTouchEnd(e) { 
+        if (!draggedElement) return; 
+        draggedElement.style.visibility = 'hidden'; 
+        const dropTarget = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
+        handleDrop(dropTarget); 
+        draggedElement.style.transform = ''; 
+        draggedElement.style.visibility = 'visible'; 
+        draggedElement.classList.remove('dragging'); 
+        document.removeEventListener('touchmove', handleTouchMove); 
+        document.removeEventListener('touchend', handleTouchEnd); 
+        draggedElement = null; 
+    }
+
+    function createDraggableEmoji(emoji, qType) { 
+        const element = document.createElement('span'); 
+        element.textContent = emoji; 
+        element.classList.add('emoji'); 
+        element.draggable = true; 
+        element.dataset.questionType = qType; 
+        element.addEventListener('dragstart', handleDragStart); 
+        element.addEventListener('touchstart', handleTouchStart, { passive: false }); 
+        return element; 
+    }
+
+    function getRandomItems(arr, n) { 
+        const shuffled = [...arr].sort(() => 0.5 - Math.random()); 
+        return shuffled.slice(0, n); 
+    }
+
+    // 改進為隨機打亂演算法
+    function shuffleArray(array) { 
+        for (let i = array.length - 1; i > 0; i--) { 
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]]; 
+        } 
+    }
+
+    function isValidAnchorPosition(row, col, type) { 
+        switch (type) { 
+            case 'above': return row > 0; 
+            case 'below': return row < GRID_ROWS - 1; 
+            case 'left': return col > 0; 
+            case 'right': return col < GRID_COLS - 1; 
+            default: return true; 
+        } 
+    }
+
+    // ====================================================
+    // ★ 4. 網頁加載完畢後，綁定事件與雲端實時訂閱 ★
+    // ====================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+        handleClassSelectionChange();
+        
+        // 1. 初次載入登入畫面時，獲取雲端排行榜
+        await initLoginScreenLeaderboard();
+
+        // 2. 實時訂閱：當有新分數寫入數據庫，所有 iPad 上的登入排行自動刷新
+        supabaseClient
+            .channel('schema-db-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'leaderboard' },
+                async (payload) => {
+                    console.log('有新的挑戰者完成！雲端排行榜自動更新中...', payload);
+                    await initLoginScreenLeaderboard();
+                }
+            )
+            .subscribe();
     });
 
-    // (此處省略所有其他遊戲函數，它們與 v9.1 完全相同)
-    function handleLogin(){const e=classSelect.value,t=studentIdSelect.value;if(!e||!t)return void(loginError.textContent="請完整選擇班別及學號/姓名！");currentUser={class:e,id:t},loginError.textContent="",playSound("click"),loginScreen.classList.add("hidden"),instructionScreen.classList.remove("hidden")}async function startGame(){playSound("click"),instructionScreen.classList.add("hidden"),endScreen.classList.add("hidden"),gameMainInterface.classList.remove("hidden"),score=0,timer=TOTAL_TIME,questionCounter=0,currentLevel=1,consecutiveCorrect=0,consecutiveWrong=0,updateStatus(),generateQuestion(),clearInterval(timerInterval),timerInterval=setInterval((()=>{timer--,updateStatus(),timer<=5&&timer>0&&playSound("tick"),timer<=0&&endGame()}),1e3)}function updateStatus(){timerDisplay.textContent=`遊戲時間: ${timer}`,scoreDisplay.textContent=`分數: ${score}`,diffLevelDisplay.textContent=LEVEL_NAMES[currentLevel],diffStreakDisplay.textContent=currentLevel<3?`(連勝: ${consecutiveCorrect}/3)`:"(最高階)"}function triggerLevelAlert(e,t){levelAlertText.textContent=e?`等級提升！${LEVEL_NAMES[t]}`:`難度調整至 ${LEVEL_NAMES[t]}`,levelAlertText.className=`level-alert-card ${e?"level-up":"level-down"}`,levelAlertOverlay.classList.remove("hidden"),setTimeout((()=>{levelAlertOverlay.classList.add("hidden")}),1200)}function generateQuestion(){gameGrid.innerHTML="",draggableContainer.innerHTML="",currentQuestionData=null,IS_DEBUG_MODE&&console.log(`第 ${questionCounter+1} 題 | 等級: Level ${currentLevel}`);try{1===currentLevel?generateLevel1Question():2===currentLevel?questionCounter>0&&(questionCounter+1)%4==0?generateBetweenQuestion():generateLevel2Question():generateLevel3Question()}catch(e){console.error("生成題目發生錯誤，使用備援題:",e),generateLevel1Question()}}function generateLevel1Question(){const e=["above","below","left","right"][Math.floor(4*Math.random())];let[t,n]=getRandomItems(TARGET_EMOJIS,2);let l,o,a=[];for(;0===a.length;){do{l=Math.floor(Math.random()*GRID_ROWS),o=Math.floor(Math.random()*GRID_COLS)}while(!isValidAnchorPosition(l,o,e));for(let t=0;t<GRID_ROWS;t++)for(let n=0;n<GRID_COLS;n++)checkAnswerLogic(t,n,l,o,e)&&a.push({r:t,c:n})}const s=l*GRID_COLS+o,d=a[Math.floor(Math.random()*a.length)],c=d.r*GRID_COLS+d.c,i=Array(GRID_ROWS*GRID_COLS).fill(null);i[s]=n;let r=[];for(let e=0;e<GRID_ROWS*GRID_COLS;e++)e!==s&&e!==c&&r.push(e);shuffleArray(r);const u=Math.floor(2*Math.random())+1,p=getRandomItems(DISTRACTOR_EMOJIS,u);for(let e=0;e<u;e++)i[r.pop()]=p[e];renderGrid(i,[s]),instructionText.innerHTML=`<span class="emoji">${t}</span> 在 <span class="emoji">${n}</span> 的${TEXT_MAP[e]}`,currentQuestionData={level:1,type:e,subject:t},draggableContainer.appendChild(createDraggableEmoji(t,e))}function generateLevel2Question(){const e=["above","below","left","right"][Math.floor(4*Math.random())],t=.5<Math.random();let[n,l]=getRandomItems(TARGET_EMOJIS,2);let o,a,s=[];for(;0===s.length;){do{o=Math.floor(Math.random()*GRID_ROWS),a=Math.floor(Math.random()*GRID_COLS)}while(!isValidAnchorPosition(o,a,e));for(let t=0;t<GRID_ROWS;t++)for(let n=0;n<GRID_COLS;n++)checkAnswerLogic(t,n,o,a,e)&&s.push({r:t,c:n})}const d=o*GRID_COLS+a,c=s[Math.floor(Math.random()*s.length)],i=c.r*GRID_COLS+c.c,r=Array(GRID_ROWS*GRID_COLS).fill(null);r[d]=l;let u=[];for(let e=0;e<GRID_ROWS*GRID_COLS;e++)e!==d&&e!==i&&u.push(e);shuffleArray(u);const p=Math.floor(2*Math.random())+3,g=getRandomItems(DISTRACTOR_EMOJIS,p);for(let e=0;e<p;e++)r[u.pop()]=g[e];renderGrid(r,[d]),instructionText.innerHTML=t?`<span class="emoji">${n}</span> 在 <span class="emoji">${l}</span> 的${TEXT_MAP[e]}`:`<span class="emoji">${l}</span> 的${TEXT_MAP[e]}是 <span class="emoji">${n}</span>`,currentQuestionData={level:2,type:e,subject:n},draggableContainer.appendChild(createDraggableEmoji(n,e))}function generateLevel3Question(){let[e,t,n]=getRandomItems(TARGET_EMOJIS,3);const l=Math.floor(Math.random()*GRID_ROWS),o=Math.floor(Math.random()*GRID_COLS),a=l*GRID_COLS+o;let s,d;if(0===o)s="left",d=Math.floor(Math.random()*(GRID_COLS-1))+1;else if(o===GRID_COLS-1)s="right",d=Math.floor(Math.random()*(GRID_COLS-1));else{s=.5<Math.random()?"right":"left";const e=[];if("left"===s)for(let t=o+1;t<GRID_COLS;t++)e.push(t);else for(let t=0;t<o;t++)e.push(t);d=e[Math.floor(Math.random()*e.length)]}const c=l*GRID_COLS+d;let i,r;if(0===l)i="above",r=Math.floor(Math.random()*(GRID_ROWS-1))+1;else if(l===GRID_ROWS-1)i="below",r=Math.floor(Math.random()*(GRID_ROWS-1));else{i=.5<Math.random()?"below":"above";const e=[];if("above"===i)for(let t=l+1;t<GRID_ROWS;t++)e.push(t);else for(let t=0;t<l;t++)e.push(t);r=e[Math.floor(Math.random()*e.length)]}const u=r*GRID_COLS+o,p=Array(GRID_ROWS*GRID_COLS).fill(null);p[c]=t,p[u]=n;let g=[];for(let e=0;e<GRID_ROWS*GRID_COLS;e++)e!==c&&e!==u&&e!==a&&g.push(e);shuffleArray(g);const h=Math.random()<.5?0:1,E=getRandomItems(DISTRACTOR_EMOJIS,h);for(let e=0;e<h;e++)p[g.pop()]=E[e];renderGrid(p,[c,u]),instructionText.innerHTML=`<span class="emoji">${e}</span> 在 <span class="emoji">${t}</span> 的${TEXT_MAP[s]}，<span style="color:var(--emphasis-color)">且</span>在 <span class="emoji">${n}</span> 的${TEXT_MAP[i]}`,currentQuestionData={level:3,type:"dual_condition",solRow:l,solCol:o,subject:e},draggableContainer.appendChild(createDraggableEmoji(e,"dual_condition"))}function generateBetweenQuestion(){let[e,t,n]=getRandomItems(TARGET_EMOJIS,3);const l=[];for(let e=0;e<GRID_ROWS;e++)for(let t=0;t<=GRID_COLS-3;t++)l.push([{r:e,c:t},{r:e,c:t+1},{r:e,c:t+2}]);for(let e=0;e<GRID_COLS;e++)for(let t=0;t<=GRID_ROWS-3;t++)l.push([{r:t,c:e},{r:t+1,c:e},{r:t+2,c:e}]);const o=l[Math.floor(Math.random()*l.length)],[a,s]=o,[d,c]=.5<Math.random()?[a,s[2]]:[s[2],a],i=d.r*GRID_COLS+d.c,r=c.r*GRID_COLS+c.c,u=s[1].r*GRID_COLS+s[1].c,p=[];for(let e=0;e<GRID_ROWS*GRID_COLS;e++)e!==i&&e!==r&&e!==u&&p.push(e);shuffleArray(p);const g=Array(GRID_ROWS*GRID_COLS).fill(null);g[i]=t,g[r]=n;const h=Math.floor(2*Math.random())+2,E=getRandomItems(DISTRACTOR_EMOJIS,h);for(let e=0;e<h;e++){const t=p.pop();void 0!==t&&(g[t]=E[e])}renderGrid(g,[i,r]),instructionText.innerHTML=`<span class="emoji">${e}</span> 在 <span class="emoji">${t}</span> 和 <span class="emoji">${n}</span> 之間`,currentQuestionData={level:2,type:"between",subject:e},draggableContainer.appendChild(createDraggableEmoji(e,"between"))}function handleDrop(e){if(isChecking)return;const t=e?e.closest(".grid-cell"):null;if(t&&!t.hasChildNodes()&&checkAnswer(t)){if(playSound("correct"),score+=LEVEL_SCORES[currentLevel],questionCounter++,consecutiveWrong=0,consecutiveCorrect++,consecutiveCorrect>=3&&currentLevel<3&&(currentLevel++,consecutiveCorrect=0,triggerLevelAlert(!0,currentLevel)),updateStatus(),t.appendChild(draggedElement),draggedElement.classList.remove("dragging"),showFeedback(!0),draggedElement=null,setTimeout(generateQuestion,800),draggedElement)return}else if(draggedElement){if(playSound("wrong"),consecutiveCorrect=0,consecutiveWrong++,3===currentLevel?(currentLevel=2,consecutiveWrong=0,triggerLevelAlert(!1,currentLevel)):2===currentLevel&&consecutiveWrong>=2&&(currentLevel=1,consecutiveWrong=0,triggerLevelAlert(!1,currentLevel)),updateStatus(),showFeedback(!1),draggedElement)return}}async function endGame(){clearInterval(timerInterval),playSound("gameOver"),gameMainInterface.classList.add("hidden"),endMessage.innerHTML=`你在 ${TOTAL_TIME} 秒內累計得分：<strong>${score} 分</strong>！<br>答對題數：${questionCounter} 題`,await saveScoreToCloud(currentUser.class,currentUser.id,score),endScreen.classList.remove("hidden")}function replayGame(){playSound("click"),endScreen.classList.add("hidden"),fetchCloudLeaderboard(),loginScreen.classList.remove("hidden")}function handleDragStart(e){isChecking||(draggedElement=e.target,setTimeout((()=>{draggedElement&&(draggedElement.style.visibility="hidden")}),0))}function handleDragEnd(){draggedElement&&(draggedElement.style.visibility="visible"),draggedElement=null}function handleTouchStart(e){isChecking||(e.preventDefault(),draggedElement=e.target,initialX=(e=e.touches[0]).clientX,initialY=e.clientY,draggedElement.classList.add("dragging"),document.addEventListener("touchmove",handleTouchMove,{passive:!1}),document.addEventListener("touchend",handleTouchEnd))}function handleTouchMove(e){e.preventDefault(),draggedElement&&(e=e.touches[0],t=e.clientX-initialX,n=e.clientY-initialY,draggedElement.style.transform=`translate(${t}px, ${n}px)`);var t,n}function handleTouchEnd(e){if(draggedElement){draggedElement.style.visibility="hidden";var t=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);handleDrop(t),draggedElement.style.transform="",draggedElement.style.visibility="visible",draggedElement.classList.remove("dragging"),document.removeEventListener("touchmove",handleTouchMove),document.removeEventListener("touchend",handleTouchEnd),draggedElement=null}}function createDraggableEmoji(e,t){const n=document.createElement("span");return n.textContent=e,n.classList.add("emoji"),n.draggable=!0,n.dataset.questionType=t,n.addEventListener("dragstart",handleDragStart),n.addEventListener("touchstart",handleTouchStart,{passive:!1}),n}function getRandomItems(e,t){return[...e].sort((()=>.5-Math.random())).slice(0,t)}function shuffleArray(e){for(let t=e.length-1;t>0;t--){const n=Math.floor(Math.random()*(t+1));[e[t],e[n]]=[e[n],e[t]]}}function isValidAnchorPosition(e,t,n){switch(n){case"above":return e>0;case"below":return e<GRID_ROWS-1;case"left":return t>0;case"right":return t<GRID_COLS-1;default:return!0}}function checkAnswer(e){if(!draggedElement)return!1;const t=parseInt(e.dataset.row),n=parseInt(e.dataset.col);if(currentQuestionData&&"dual_condition"===currentQuestionData.type)return t===currentQuestionData.solRow&&n===currentQuestionData.solCol;const l=draggedElement.dataset.questionType,o=gameGrid.querySelectorAll('.grid-cell[data-anchor="true"]');if(0===o.length)return!1;if("between"===l){if(o.length<2)return!1;const e=parseInt(o[0].dataset.row),t=parseInt(o[0].dataset.col),l=parseInt(o[1].dataset.row),a=parseInt(o[1].dataset.col);return t===a?n===t&&t>Math.min(e,l)&&t<Math.max(e,l):e===l?t===e&&n>Math.min(t,a)&&n<Math.max(t,a):void 0}const a=parseInt(o[0].dataset.row),s=parseInt(o[0].dataset.col);return checkAnswerLogic(t,n,a,s,l)}function checkAnswerLogic(e,t,n,l,o){switch(o){case"above":return t===l&&e<n;case"below":return t===l&&e>n;case"left":return e===n&&t<l;case"right":return e===n&&t>l;default:return!1}}function renderGrid(e,t){gameGrid.innerHTML="";for(let n=0;n<e.length;n++){const l=document.createElement("div");l.classList.add("grid-cell"),l.dataset.row=Math.floor(n/GRID_COLS),l.dataset.col=n%GRID_COLS,e[n]&&(o=document.createElement("span"),o.classList.add("emoji","immobile"),o.textContent=e[n],t.includes(n)&&(l.dataset.anchor="true"),l.appendChild(o)),gameGrid.appendChild(l);var o}}function showFeedback(e){feedbackIcon.textContent=e?"✓":"✗",feedbackIcon.className="feedback-icon "+(e?"correct":"wrong"),feedbackOverlay.classList.remove("hidden"),isChecking=!0,setTimeout((()=>{feedbackOverlay.classList.add("hidden"),e&&generateQuestion(),isChecking=!1}),700)}function playSound(e){if(audioContext){audioContext.state==="suspended"&&audioContext.resume();var t=audioContext.createOscillator(),n=audioContext.createGain();switch(t.connect(n),n.connect(audioContext.destination),e){case"click":t.type="sine",t.frequency.setValueAtTime(440,audioContext.currentTime),n.gain.setValueAtTime(.5,audioContext.currentTime),n.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.2);break;case"correct":t.type="triangle",t.frequency.setValueAtTime(523.25,audioContext.currentTime),t.frequency.linearRampToValueAtTime(1046.5,audioContext.currentTime+.15),n.gain.setValueAtTime(.3,audioContext.currentTime),n.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.2);break;case"wrong":t.type="square",t.frequency.setValueAtTime(220,audioContext.currentTime),n.gain.setValueAtTime(.3,audioContext.currentTime),n.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.3);break;case"tick":t.type="sine",t.frequency.setValueAtTime(880,audioContext.currentTime),n.gain.setValueAtTime(.2,audioContext.currentTime),n.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.1);break;case"gameOver":t.type="sawtooth",t.frequency.setValueAtTime(440,audioContext.currentTime),t.frequency.linearRampToValueAtTime(220,audioContext.currentTime+.5),n.gain.setValueAtTime(.4,audioContext.currentTime),n.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.5)}t.start(),t.stop(audioContext.currentTime+.5)}}
+    classSelect.addEventListener('change', handleClassSelectionChange);
+    gameGrid.addEventListener('dragover', e => e.preventDefault());
+    gameGrid.addEventListener('drop', e => { 
+        e.preventDefault(); 
+        handleDrop(e.target); 
+        handleDragEnd(); 
+    });
+    loginButton.addEventListener('click', handleLogin);
+    readyButton.addEventListener('click', startGame);
+    replayButton.addEventListener('click', replayGame);
     </script>
 </body>
 </html>
