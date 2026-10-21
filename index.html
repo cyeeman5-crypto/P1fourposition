@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>數學遊戲：位置猜猜猜 v8.9 雲端實時版 (Bug修復)</title>
+    <title>數學遊戲：位置猜猜猜 v9.0 雲端實時完美修復版</title>
     <!-- 引入 Supabase CDN (雲端資料庫 SDK) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -197,15 +197,17 @@
             border: 0.3vh dashed var(--cabin-frame-color); 
             border-radius: 1rem; 
             background-color: #FFF8E1; 
+            position: relative;
         }
         #draggable-emoji-container .emoji { 
             font-size: 7vh; 
             line-height: 1; 
         }
         
-        .emoji { cursor: grab; text-shadow: 0.2rem 0.2rem 0.4rem rgba(0,0,0,0.2); }
-        .emoji.dragging { opacity: 0.5; cursor: grabbing; }
+        .emoji { cursor: grab; text-shadow: 0.2rem 0.2rem 0.4rem rgba(0,0,0,0.2); touch-action: none; }
+        .emoji.dragging { opacity: 0.7; cursor: grabbing; z-index: 999; }
         .emoji.immobile { cursor: not-allowed; }
+        
         /* 覆蓋介面 */
         .game-overlay, .feedback-overlay, .level-alert-overlay { 
             position: fixed; 
@@ -284,6 +286,7 @@
             box-shadow: 0 4px 10px rgba(92, 184, 92, 0.4);
         }
         .game-button:hover { opacity: 0.9; transform: translateY(-1px); }
+        
         /* 登入介面專用版面 */
         .login-layout {
             display: flex;
@@ -924,10 +927,22 @@
         draggableContainer.appendChild(createDraggableEmoji(subjectEmoji, 'between')); 
     }
 
+    // ====================================================
+    // ★ 關鍵修復：拖放判定與容錯還原 ★
+    // ====================================================
     function handleDrop(target) { 
         if (isChecking) return; 
         const cell = target ? target.closest('.grid-cell') : null; 
-        const isAnswerCorrect = cell && !cell.hasChildNodes() && checkAnswer(cell); 
+        let isAnswerCorrect = false;
+
+        try {
+            if (cell && !cell.hasChildNodes()) {
+                isAnswerCorrect = checkAnswer(cell); 
+            }
+        } catch (err) {
+            console.error("判定答案時發生錯誤:", err);
+            isAnswerCorrect = false;
+        }
         
         if (isAnswerCorrect) { 
             playSound('correct'); 
@@ -943,8 +958,11 @@
             updateStatus(); 
             const tempEmoji = draggedElement.cloneNode(true); 
             tempEmoji.classList.remove('dragging'); 
+            tempEmoji.style.transform = '';
+            tempEmoji.style.pointerEvents = 'auto';
+            tempEmoji.style.visibility = 'visible';
             cell.appendChild(tempEmoji); 
-            if (draggedElement.parentElement) { 
+            if (draggedElement && draggedElement.parentElement) { 
                 draggedElement.parentElement.removeChild(draggedElement); 
             } 
             showFeedback(true); 
@@ -965,8 +983,12 @@
                 updateStatus();
                 showFeedback(false); 
                 
-                // 學生答錯時，將被拖曳的水果放回下方的拖曳儲存盒中，防止在 iPad 畫面上平移消失。
-                if (draggedElement) {
+                // 【修復核心】答錯或放錯位置時，100% 確保水果立刻回位並顯示！
+                draggedElement.style.transform = '';
+                draggedElement.style.visibility = 'visible';
+                draggedElement.style.pointerEvents = 'auto';
+                draggedElement.classList.remove('dragging');
+                if (!draggableContainer.contains(draggedElement)) {
                     draggableContainer.appendChild(draggedElement);
                 }
             } 
@@ -991,7 +1013,7 @@
         
         if (questionType === 'between') { 
             if (anchorCells.length < 2) return false; 
-            // 【修復】原本 anchorCells 漏掉了陣列索引 [0] 和 
+            // 【修復】原本 anchorCells 漏掉了陣列索引 [0] 和
             const r1 = parseInt(anchorCells[0].dataset.row), c1 = parseInt(anchorCells[0].dataset.col); 
             const r2 = parseInt(anchorCells.dataset.row), c2 = parseInt(anchorCells.dataset.col); 
             
@@ -1111,10 +1133,16 @@
     }
 
     function handleDragEnd() { 
-        if (draggedElement) draggedElement.style.visibility = 'visible'; 
+        if (draggedElement) {
+            draggedElement.style.visibility = 'visible';
+            draggedElement.style.transform = '';
+        } 
         draggedElement = null; 
     }
 
+    // ====================================================
+    // ★ 關鍵修復：iPad 觸控事件穿透識別 ★
+    // ====================================================
     function handleTouchStart(e) { 
         if (isChecking) { e.preventDefault(); return; } 
         e.preventDefault(); 
@@ -1123,6 +1151,7 @@
         initialX = touch.clientX; 
         initialY = touch.clientY; 
         draggedElement.classList.add('dragging'); 
+        draggedElement.style.pointerEvents = 'none'; // 讓它穿透，確保 elementFromPoint 能抓到下方的格子
         document.addEventListener('touchmove', handleTouchMove, { passive: false }); 
         document.addEventListener('touchend', handleTouchEnd); 
     }
@@ -1138,14 +1167,25 @@
 
     function handleTouchEnd(e) { 
         if (!draggedElement) return; 
-        draggedElement.style.visibility = 'hidden'; 
-        const dropTarget = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
-        handleDrop(dropTarget); 
-        draggedElement.style.transform = ''; 
-        draggedElement.style.visibility = 'visible'; 
-        draggedElement.classList.remove('dragging'); 
+        
+        // 取得手指放開處底下的 DOM 元素
+        const touch = e.changedTouches[0];
+        const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY); 
+        
+        const el = draggedElement;
+        el.style.pointerEvents = 'auto'; // 恢復點擊
+
         document.removeEventListener('touchmove', handleTouchMove); 
         document.removeEventListener('touchend', handleTouchEnd); 
+
+        handleDrop(dropTarget); 
+        
+        // 如果元素仍在畫面上，保證它的外觀被正確還原
+        if (el) {
+            el.classList.remove('dragging'); 
+            el.style.visibility = 'visible';
+            el.style.transform = ''; 
+        }
         draggedElement = null; 
     }
 
@@ -1156,6 +1196,7 @@
         element.draggable = true; 
         element.dataset.questionType = qType; 
         element.addEventListener('dragstart', handleDragStart); 
+        element.addEventListener('dragend', handleDragEnd); 
         element.addEventListener('touchstart', handleTouchStart, { passive: false }); 
         return element; 
     }
