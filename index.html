@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>數學遊戲：位置猜猜猜 v9.1 完美修復版</title>
-    <!-- 引入 Supabase CDN (雲端資料庫 SDK) -->
+    <title>數學遊戲：位置猜猜猜 v9.2 終極修復版</title>
+    <!-- 引入 Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=400;700&display=swap');
         :root { 
-            --bg-image: url('my_background.jpg'); /* 統一背景圖 */
+            --bg-image: url('my_background.jpg'); 
             --cabin-frame-color: #8B4513; 
             --cabin-inner-color: #F5DEB3; 
             --button-color: #5CB85C; 
@@ -40,7 +40,6 @@
             overflow: hidden; 
             padding: 10px;
         }
-        /* 遊戲主容器 */
         .game-container { 
             position: relative; 
             width: 95vw; 
@@ -83,7 +82,6 @@
             border-radius: 0.5rem;
         }
         
-        /* 預設指令區大字體樣式 */
         .instruction-area { 
             font-size: 3.5vh; 
             font-weight: bold; 
@@ -96,7 +94,6 @@
         }
         .instruction-area .emoji { font-size: 1.3em; vertical-align: middle; margin: 0 0.5rem; }
         
-        /* 核心自適應內容區 */
         .content-area { 
             display: flex; 
             flex-grow: 1; 
@@ -104,9 +101,7 @@
             min-height: 0; 
             width: 100%;
         }
-        /* ==================================================== */
-        /* ★ 橫向佈局極致優化 ★ */
-        /* ==================================================== */
+        
         @media (orientation: landscape) {
             .game-container {
                 width: 80vw;
@@ -117,7 +112,6 @@
                 flex-direction: row;
                 align-items: stretch;
             }
-            
             .game-grid {
                 width: 58%; 
                 height: 100%;
@@ -127,10 +121,8 @@
                 height: 100%;
                 flex-direction: column;
             }
-            
             h1 { font-size: 2.8vh; }
             .status-bar { font-size: 2vh; padding: 0.4vh; }
-            
             body .instruction-area { 
                 font-size: 3.6vh !important; 
                 min-height: 5.5vh !important; 
@@ -139,7 +131,7 @@
                 font-size: 1.3em !important;
             }
         }
-        /* 預設直向佈局 (iPad 直向) */
+        
         @media (orientation: portrait) {
             .content-area {
                 flex-direction: column;
@@ -155,6 +147,7 @@
                 flex-direction: row;
             }
         }
+        
         .game-grid { 
             display: grid; 
             grid-template-columns: repeat(4, 1fr); 
@@ -208,7 +201,6 @@
         .emoji.dragging { opacity: 0.7; cursor: grabbing; z-index: 999; }
         .emoji.immobile { cursor: not-allowed; }
         
-        /* 覆蓋介面 */
         .game-overlay, .feedback-overlay, .level-alert-overlay { 
             position: fixed; 
             top: 0; 
@@ -287,7 +279,6 @@
         }
         .game-button:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* 登入介面專用版面 */
         .login-layout {
             display: flex;
             flex-direction: column;
@@ -358,7 +349,6 @@
     </style>
 </head>
 <body>
-    <!-- 遊戲主畫面 -->
     <div class="game-container hidden" id="game-main-interface">
         <div class="info-panel">
             <header><h1>森林裡的奇妙小屋</h1></header>
@@ -379,7 +369,6 @@
         <div class="designer-credit">Designed by 陳綺雯老師</div>
     </div>
 
-    <!-- 登入畫面（內嵌即時排行榜） -->
     <div class="game-overlay" id="login-screen">
         <div class="login-layout">
             <h2>位置猜猜猜 🏠</h2>
@@ -417,7 +406,6 @@
         </div>
     </div>
 
-    <!-- 規則說明畫面 -->
     <div class="game-overlay hidden" id="instruction-screen">
         <h2>遊戲規則 📜</h2>
         <p style="font-size: 2.2vh; line-height: 1.6; max-width: 60rem; margin: 1.5vh 0;">
@@ -428,7 +416,6 @@
         <button class="game-button" id="ready-button">準備好了！</button>
     </div>
 
-    <!-- 結算畫面 -->
     <div class="game-overlay hidden" id="end-screen">
         <h2>時間到！ ⏰</h2>
         <p id="end-message" style="font-size: 2.4vh; margin: 0.5vh 0;"></p>
@@ -437,12 +424,10 @@
         <button class="game-button" id="replay-button">再玩一次</button>
     </div>
 
-    <!-- 答題回饋浮層 -->
     <div class="feedback-overlay hidden" id="feedback-overlay">
         <div class="feedback-icon" id="feedback-icon"></div>
     </div>
 
-    <!-- 升降級文字動畫浮層 -->
     <div class="level-alert-overlay hidden" id="level-alert-overlay">
         <div class="level-alert-card" id="level-alert-text"></div>
     </div>
@@ -453,8 +438,6 @@
     // ====================================================
     const SUPABASE_URL = "https://mzwiaaftaftfmyyvxjfp.supabase.co"; 
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16d2lhYWZ0YWZ0Zm15eXZ4amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMzAyNTMsImV4cCI6MjEwNzcwNjI1M30.d0kbPJHoHQFrOBaOEsqGCAMQ7NPKovzYUZDjzkx5v6Q";
-    
-    // 初始化 Supabase 客戶端
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const IS_DEBUG_MODE = true; 
@@ -621,7 +604,7 @@
     }
 
     // ====================================================
-    // ★ 3. 遊戲核心邏輯 ★
+    // ★ 3. 遊戲邏輯與出題管理 ★
     // ====================================================
     function handleClassSelectionChange() {
         const selectedClass = classSelect.value;
@@ -887,7 +870,7 @@
     }
 
     // ====================================================
-    // ★ 關鍵修復：題目直接生成並存儲精確坐標 solRow, solCol ★
+    // ★ 關鍵修復：保證「之間」的題目絕對留空且記錄正確坐標 ★
     // ====================================================
     function generateBetweenQuestion() { 
         let [subjectEmoji, anchorEmoji1, anchorEmoji2] = getRandomItems(TARGET_EMOJIS, 3); 
@@ -908,11 +891,16 @@
         const anchor1Index = anchor1Pos.r * GRID_COLS + anchor1Pos.c; 
         const anchor2Index = anchor2Pos.r * GRID_COLS + anchor2Pos.c; 
         const solutionIndex = solutionPos.r * GRID_COLS + solutionPos.c; 
+
+        // 嚴格確保可用格子清單絕對不包含目標空格 (solutionIndex)
         let availableSpots = []; 
         for (let i = 0; i < GRID_ROWS * GRID_COLS; i++) { 
-            if (i !== anchor1Index && i !== anchor2Index && i !== solutionIndex) availableSpots.push(i); 
+            if (i !== anchor1Index && i !== anchor2Index && i !== solutionIndex) {
+                availableSpots.push(i); 
+            }
         } 
         shuffleArray(availableSpots); 
+
         const gridState = Array(GRID_ROWS * GRID_COLS).fill(null); 
         gridState[anchor1Index] = anchorEmoji1; 
         gridState[anchor2Index] = anchorEmoji2; 
@@ -920,13 +908,19 @@
         const distCount = Math.floor(Math.random() * 2) + 2; 
         const distractors = getRandomItems(DISTRACTOR_EMOJIS, distCount); 
         for (let i = 0; i < distCount; i++) { 
-            const spot = availableSpots.pop(); 
-            if (spot !== undefined) gridState[spot] = distractors[i]; 
+            if (availableSpots.length > 0) {
+                const spot = availableSpots.pop(); 
+                gridState[spot] = distractors[i]; 
+            }
         } 
+        
+        // 確保答案格 100% 保持為 null (乾淨空格)
+        gridState[solutionIndex] = null; 
+
         renderGrid(gridState, [anchor1Index, anchor2Index]); 
         instructionText.innerHTML = `<span class="emoji">${subjectEmoji}</span> 在 <span class="emoji">${anchorEmoji1}</span> 和 <span class="emoji">${anchorEmoji2}</span> 之間`; 
         
-        // 核心直連：直接將正確位置的行與列存入，判定時 100% 準確！
+        // 核心直通坐標記錄：
         currentQuestionData = { 
             level: 2, 
             type: 'between', 
@@ -937,17 +931,21 @@
         draggableContainer.appendChild(createDraggableEmoji(subjectEmoji, 'between')); 
     }
 
+    // ====================================================
+    // ★ 關鍵修復：拖曳放下判定管線 ★
+    // ====================================================
     function handleDrop(target) { 
         if (isChecking) return; 
         const cell = target ? target.closest('.grid-cell') : null; 
         let isAnswerCorrect = false;
 
         try {
+            // 只要目標格存在，而且該格子沒有其他固定水果，就進去檢查答案
             if (cell && !cell.hasChildNodes()) {
                 isAnswerCorrect = checkAnswer(cell); 
             }
         } catch (err) {
-            console.error("判定答案時發生錯誤:", err);
+            console.error("判定答案出錯:", err);
             isAnswerCorrect = false;
         }
         
@@ -990,6 +988,7 @@
                 updateStatus();
                 showFeedback(false); 
                 
+                // 水果 100% 彈回下方的方框，絕不隱形！
                 draggedElement.style.transform = '';
                 draggedElement.style.visibility = 'visible';
                 draggedElement.style.pointerEvents = 'auto';
@@ -1002,42 +1001,28 @@
     }
 
     // ====================================================
-    // ★ 關鍵修復：雙重保證精確答案判定 ★
+    // ★ 關鍵修復：核心比對邏輯 (保證「之間」100% 正確判定) ★
     // ====================================================
     function checkAnswer(droppedCell) { 
         if (!draggedElement) return false; 
         const droppedRow = parseInt(droppedCell.dataset.row); 
         const droppedCol = parseInt(droppedCell.dataset.col); 
         
-        // 1. 第一保險：若題目內已有記錄 solRow 與 solCol (包括 dual_condition 與 between)，直接比對坐標！
-        if (currentQuestionData && (currentQuestionData.type === 'dual_condition' || currentQuestionData.type === 'between')) {
-            if (currentQuestionData.solRow !== undefined && currentQuestionData.solCol !== undefined) {
-                return droppedRow === currentQuestionData.solRow && droppedCol === currentQuestionData.solCol;
+        // 第一優先保證：只要當前題目是「之間」或「雙重條件」，直連比對精確坐標！
+        if (currentQuestionData && (currentQuestionData.type === 'between' || currentQuestionData.type === 'dual_condition')) {
+            if (typeof currentQuestionData.solRow === 'number' && typeof currentQuestionData.solCol === 'number') {
+                return (droppedRow === currentQuestionData.solRow && droppedCol === currentQuestionData.solCol);
             }
         }
         
-        // 2. 第二保險：單一錨點題型判定
-        const questionType = draggedElement.dataset.questionType; 
+        // 第二優先：單錨點題目 (上下左右)
+        const questionType = (currentQuestionData && currentQuestionData.type) ? currentQuestionData.type : draggedElement.dataset.questionType; 
         const anchorCells = gameGrid.querySelectorAll('.grid-cell[data-anchor="true"]'); 
         if (anchorCells.length === 0) return false; 
         
-        if (questionType === 'between') { 
-            const anchors = Array.from(anchorCells);
-            if (anchors.length < 2) return false; 
-            const r1 = parseInt(anchors[0].dataset.row), c1 = parseInt(anchors[0].dataset.col); 
-            const r2 = parseInt(anchors.dataset.row), c2 = parseInt(anchors.dataset.col); 
-            
-            if (c1 === c2) { 
-                return droppedCol === c1 && droppedRow > Math.min(r1, r2) && droppedRow < Math.max(r1, r2); 
-            } else if (r1 === r2) { 
-                return droppedRow === r1 && droppedCol > Math.min(c1, c2) && droppedCol < Math.max(c1, c2); 
-            } 
-            return false;
-        } else { 
-            const anchorRow = parseInt(anchorCells[0].dataset.row); 
-            const anchorCol = parseInt(anchorCells[0].dataset.col); 
-            return checkAnswerLogic(droppedRow, droppedCol, anchorRow, anchorCol, questionType); 
-        } 
+        const anchorRow = parseInt(anchorCells[0].dataset.row); 
+        const anchorCol = parseInt(anchorCells[0].dataset.col); 
+        return checkAnswerLogic(droppedRow, droppedCol, anchorRow, anchorCol, questionType); 
     }
 
     function checkAnswerLogic(droppedRow, droppedCol, anchorRow, anchorCol, questionType) { 
@@ -1228,12 +1213,8 @@
         } 
     }
 
-    // ====================================================
-    // ★ 4. 網頁加載完畢後，綁定事件與雲端實時訂閱 ★
-    // ====================================================
     document.addEventListener('DOMContentLoaded', async () => {
         handleClassSelectionChange();
-        
         await initLoginScreenLeaderboard();
 
         supabaseClient
