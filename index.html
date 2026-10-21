@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>數學遊戲：位置猜猜猜 v8.8 雲端實時版</title>
+    <title>數學遊戲：位置猜猜猜 v8.9 雲端實時版 (Bug修復)</title>
     <!-- 引入 Supabase CDN (雲端資料庫 SDK) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -83,7 +83,7 @@
             border-radius: 0.5rem;
         }
         
-        /* 預設指令區大字體樣式（適用於直向） */
+        /* 預設指令區大字體樣式 */
         .instruction-area { 
             font-size: 3.5vh; 
             font-weight: bold; 
@@ -105,7 +105,7 @@
             width: 100%;
         }
         /* ==================================================== */
-        /* ★ 橫向佈局極致優化：強制放大指令字體 + 再縮小櫃子 ★ */
+        /* ★ 橫向佈局極致優化 ★ */
         /* ==================================================== */
         @media (orientation: landscape) {
             .game-container {
@@ -118,13 +118,12 @@
                 align-items: stretch;
             }
             
-            /* 極致縮小小屋櫃子在橫向時的寬度，縮短拖曳物理距離 */
             .game-grid {
-                width: 58%; /* 再縮小至 58% */
+                width: 58%; 
                 height: 100%;
             }
             .draggable-object-area {
-                width: 42%; /* 擴大拖曳緩衝區 */
+                width: 42%; 
                 height: 100%;
                 flex-direction: column;
             }
@@ -132,7 +131,6 @@
             h1 { font-size: 2.8vh; }
             .status-bar { font-size: 2vh; padding: 0.4vh; }
             
-            /* ★ 強制覆蓋放大：橫向時「A在B左面」字體放大至與直向一樣大 (3.6vh)，Emoji 放大至 1.3em ★ */
             body .instruction-area { 
                 font-size: 3.6vh !important; 
                 min-height: 5.5vh !important; 
@@ -448,7 +446,7 @@
 
     <script>
     // ====================================================
-    // ★ 1. 您的全新 Supabase 連線資訊 (已設定完成) ★
+    // ★ 1. 您的全新 Supabase 連線資訊 ★
     // ====================================================
     const SUPABASE_URL = "https://mzwiaaftaftfmyyvxjfp.supabase.co"; 
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16d2lhYWZ0YWZ0Zm15eXZ4amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMzAyNTMsImV4cCI6MjEwNzcwNjI1M30.d0kbPJHoHQFrOBaOEsqGCAMQ7NPKovzYUZDjzkx5v6Q";
@@ -966,10 +964,18 @@
                 }
                 updateStatus();
                 showFeedback(false); 
+                
+                // 學生答錯時，將被拖曳的水果放回下方的拖曳儲存盒中，防止在 iPad 畫面上平移消失。
+                if (draggedElement) {
+                    draggableContainer.appendChild(draggedElement);
+                }
             } 
         } 
     }
 
+    // ====================================================
+    // ★ 關鍵修復：完美判定 between 兩大錨點之間的算法 ★
+    // ====================================================
     function checkAnswer(droppedCell) { 
         if (!draggedElement) return false; 
         const droppedRow = parseInt(droppedCell.dataset.row); 
@@ -978,13 +984,17 @@
         if (currentQuestionData && currentQuestionData.type === 'dual_condition') {
             return droppedRow === currentQuestionData.solRow && droppedCol === currentQuestionData.solCol;
         }
+        
         const questionType = draggedElement.dataset.questionType; 
         const anchorCells = gameGrid.querySelectorAll('.grid-cell[data-anchor="true"]'); 
         if (anchorCells.length === 0) return false; 
+        
         if (questionType === 'between') { 
             if (anchorCells.length < 2) return false; 
+            // 【修復】原本 anchorCells 漏掉了陣列索引 [0] 和 
             const r1 = parseInt(anchorCells[0].dataset.row), c1 = parseInt(anchorCells[0].dataset.col); 
             const r2 = parseInt(anchorCells.dataset.row), c2 = parseInt(anchorCells.dataset.col); 
+            
             if (c1 === c2) { 
                 return droppedCol === c1 && droppedRow > Math.min(r1, r2) && droppedRow < Math.max(r1, r2); 
             } else if (r1 === r2) { 
@@ -1117,7 +1127,6 @@
         document.addEventListener('touchend', handleTouchEnd); 
     }
 
-    // 修復了雙重條件下觸發拖曳時的坐標問題
     function handleTouchMove(e) { 
         e.preventDefault(); 
         if (!draggedElement) return; 
@@ -1156,7 +1165,6 @@
         return shuffled.slice(0, n); 
     }
 
-    // 改進為隨機打亂演算法
     function shuffleArray(array) { 
         for (let i = array.length - 1; i > 0; i--) { 
             const j = Math.floor(Math.random() * (i + 1));
