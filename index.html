@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>數學遊戲：位置猜猜猜 v9.0 雲端實時完美修復版</title>
+    <title>數學遊戲：位置猜猜猜 v9.1 完美修復版</title>
     <!-- 引入 Supabase CDN (雲端資料庫 SDK) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -449,7 +449,7 @@
 
     <script>
     // ====================================================
-    // ★ 1. 您的全新 Supabase 連線資訊 ★
+    // ★ 1. 您的 Supabase 連線資訊 ★
     // ====================================================
     const SUPABASE_URL = "https://mzwiaaftaftfmyyvxjfp.supabase.co"; 
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16d2lhYWZ0YWZ0Zm15eXZ4amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMzAyNTMsImV4cCI6MjEwNzcwNjI1M30.d0kbPJHoHQFrOBaOEsqGCAMQ7NPKovzYUZDjzkx5v6Q";
@@ -621,7 +621,7 @@
     }
 
     // ====================================================
-    // ★ 3. 遊戲邏輯控制 ★
+    // ★ 3. 遊戲核心邏輯 ★
     // ====================================================
     function handleClassSelectionChange() {
         const selectedClass = classSelect.value;
@@ -886,6 +886,9 @@
         draggableContainer.appendChild(createDraggableEmoji(subjectEmoji, 'dual_condition'));
     }
 
+    // ====================================================
+    // ★ 關鍵修復：題目直接生成並存儲精確坐標 solRow, solCol ★
+    // ====================================================
     function generateBetweenQuestion() { 
         let [subjectEmoji, anchorEmoji1, anchorEmoji2] = getRandomItems(TARGET_EMOJIS, 3); 
         const possibleTriplets = []; 
@@ -923,13 +926,17 @@
         renderGrid(gridState, [anchor1Index, anchor2Index]); 
         instructionText.innerHTML = `<span class="emoji">${subjectEmoji}</span> 在 <span class="emoji">${anchorEmoji1}</span> 和 <span class="emoji">${anchorEmoji2}</span> 之間`; 
         
-        currentQuestionData = { level: 2, type: 'between', subject: subjectEmoji };
+        // 核心直連：直接將正確位置的行與列存入，判定時 100% 準確！
+        currentQuestionData = { 
+            level: 2, 
+            type: 'between', 
+            solRow: solutionPos.r, 
+            solCol: solutionPos.c, 
+            subject: subjectEmoji 
+        };
         draggableContainer.appendChild(createDraggableEmoji(subjectEmoji, 'between')); 
     }
 
-    // ====================================================
-    // ★ 關鍵修復：拖放判定與容錯還原 ★
-    // ====================================================
     function handleDrop(target) { 
         if (isChecking) return; 
         const cell = target ? target.closest('.grid-cell') : null; 
@@ -983,7 +990,6 @@
                 updateStatus();
                 showFeedback(false); 
                 
-                // 【修復核心】答錯或放錯位置時，100% 確保水果立刻回位並顯示！
                 draggedElement.style.transform = '';
                 draggedElement.style.visibility = 'visible';
                 draggedElement.style.pointerEvents = 'auto';
@@ -996,38 +1002,42 @@
     }
 
     // ====================================================
-    // ★ 關鍵修復：完美判定 between 兩大錨點之間的算法 ★
+    // ★ 關鍵修復：雙重保證精確答案判定 ★
     // ====================================================
     function checkAnswer(droppedCell) { 
         if (!draggedElement) return false; 
         const droppedRow = parseInt(droppedCell.dataset.row); 
         const droppedCol = parseInt(droppedCell.dataset.col); 
         
-        if (currentQuestionData && currentQuestionData.type === 'dual_condition') {
-            return droppedRow === currentQuestionData.solRow && droppedCol === currentQuestionData.solCol;
+        // 1. 第一保險：若題目內已有記錄 solRow 與 solCol (包括 dual_condition 與 between)，直接比對坐標！
+        if (currentQuestionData && (currentQuestionData.type === 'dual_condition' || currentQuestionData.type === 'between')) {
+            if (currentQuestionData.solRow !== undefined && currentQuestionData.solCol !== undefined) {
+                return droppedRow === currentQuestionData.solRow && droppedCol === currentQuestionData.solCol;
+            }
         }
         
+        // 2. 第二保險：單一錨點題型判定
         const questionType = draggedElement.dataset.questionType; 
         const anchorCells = gameGrid.querySelectorAll('.grid-cell[data-anchor="true"]'); 
         if (anchorCells.length === 0) return false; 
         
         if (questionType === 'between') { 
-            if (anchorCells.length < 2) return false; 
-            // 【修復】原本 anchorCells 漏掉了陣列索引 [0] 和
-            const r1 = parseInt(anchorCells[0].dataset.row), c1 = parseInt(anchorCells[0].dataset.col); 
-            const r2 = parseInt(anchorCells.dataset.row), c2 = parseInt(anchorCells.dataset.col); 
+            const anchors = Array.from(anchorCells);
+            if (anchors.length < 2) return false; 
+            const r1 = parseInt(anchors[0].dataset.row), c1 = parseInt(anchors[0].dataset.col); 
+            const r2 = parseInt(anchors.dataset.row), c2 = parseInt(anchors.dataset.col); 
             
             if (c1 === c2) { 
                 return droppedCol === c1 && droppedRow > Math.min(r1, r2) && droppedRow < Math.max(r1, r2); 
             } else if (r1 === r2) { 
                 return droppedRow === r1 && droppedCol > Math.min(c1, c2) && droppedCol < Math.max(c1, c2); 
             } 
+            return false;
         } else { 
             const anchorRow = parseInt(anchorCells[0].dataset.row); 
             const anchorCol = parseInt(anchorCells[0].dataset.col); 
             return checkAnswerLogic(droppedRow, droppedCol, anchorRow, anchorCol, questionType); 
         } 
-        return false; 
     }
 
     function checkAnswerLogic(droppedRow, droppedCol, anchorRow, anchorCol, questionType) { 
@@ -1140,9 +1150,6 @@
         draggedElement = null; 
     }
 
-    // ====================================================
-    // ★ 關鍵修復：iPad 觸控事件穿透識別 ★
-    // ====================================================
     function handleTouchStart(e) { 
         if (isChecking) { e.preventDefault(); return; } 
         e.preventDefault(); 
@@ -1151,7 +1158,7 @@
         initialX = touch.clientX; 
         initialY = touch.clientY; 
         draggedElement.classList.add('dragging'); 
-        draggedElement.style.pointerEvents = 'none'; // 讓它穿透，確保 elementFromPoint 能抓到下方的格子
+        draggedElement.style.pointerEvents = 'none'; 
         document.addEventListener('touchmove', handleTouchMove, { passive: false }); 
         document.addEventListener('touchend', handleTouchEnd); 
     }
@@ -1168,19 +1175,17 @@
     function handleTouchEnd(e) { 
         if (!draggedElement) return; 
         
-        // 取得手指放開處底下的 DOM 元素
         const touch = e.changedTouches[0];
         const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY); 
         
         const el = draggedElement;
-        el.style.pointerEvents = 'auto'; // 恢復點擊
+        el.style.pointerEvents = 'auto'; 
 
         document.removeEventListener('touchmove', handleTouchMove); 
         document.removeEventListener('touchend', handleTouchEnd); 
 
         handleDrop(dropTarget); 
         
-        // 如果元素仍在畫面上，保證它的外觀被正確還原
         if (el) {
             el.classList.remove('dragging'); 
             el.style.visibility = 'visible';
@@ -1229,10 +1234,8 @@
     document.addEventListener('DOMContentLoaded', async () => {
         handleClassSelectionChange();
         
-        // 1. 初次載入登入畫面時，獲取雲端排行榜
         await initLoginScreenLeaderboard();
 
-        // 2. 實時訂閱：當有新分數寫入數據庫，所有 iPad 上的登入排行自動刷新
         supabaseClient
             .channel('schema-db-changes')
             .on(
